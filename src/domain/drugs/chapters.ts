@@ -1,0 +1,56 @@
+export const chapters = [
+  'Cardiovascular',
+  'Respiratory',
+  'Endocrine',
+  'Musculoskeletal',
+  'Eye',
+  'Ear/Nose/Oropharynx',
+  'Gastrointestinal',
+  'Dermatology',
+  'Antibiotics',
+  'OTC',
+  'Vitamins/Supplements',
+  'Other',
+] as const;
+
+export type DrugChapter = (typeof chapters)[number];
+
+export const quickClasses: Partial<Record<DrugChapter, readonly string[]>> = {
+  Cardiovascular: [
+    'ACE inhibitors',
+    'ARBs',
+    'Beta blockers',
+    'Calcium channel blockers',
+    'Diuretics',
+    'Statins',
+    'Nitrates',
+    'Antiplatelets',
+    'Anticoagulants',
+    'Antiarrhythmics',
+  ],
+  Respiratory: [
+    'SABA',
+    'LABA',
+    'Inhaled corticosteroids',
+    'Antimuscarinics',
+    'Leukotriene receptor antagonists',
+    'Methylxanthines',
+    'Antihistamines',
+    'Cough suppressants',
+    'Expectorants/mucolytics',
+    'Decongestants',
+  ],
+  Endocrine: [
+    'Biguanides',
+    'Sulfonylureas',
+    'DPP-4 inhibitors',
+    'SGLT2 inhibitors',
+    'Insulins',
+    'GLP-1 agonists',
+    'Thyroid hormones',
+    'Antithyroid drugs',
+    'Corticosteroids',
+    'Bisphosphonates',
+    'Sex hormones',
+  ],
+};

@@ -1,0 +1,43 @@
+appId: com.renlyst.app.next
+name: Capture a known medicine and find it again
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Make today stick.'
+    timeout: 20000
+- tapOn: 'Capture first package'
+- tapOn: 'Open fast capture'
+- tapOn:
+    id: 'capture-active-ingredient'
+- inputText: 'Furosemide'
+- tapOn:
+    id: 'capture-brand'
+- inputText: 'Lasix'
+- tapOn:
+    id: 'capture-strength'
+- inputText: '40 mg'
+- tapOn:
+    id: 'capture-dosage-form'
+- inputText: 'Tablet'
+- tapOn:
+    id: 'capture-drug-class'
+- inputText: 'Loop diuretic'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: 'Save and open profile'
+    direction: DOWN
+    timeout: 20000
+- tapOn: 'Save and open profile'
+- extendedWaitUntil:
+    visible: 'Furosemide'
+    timeout: 20000
+- assertVisible: 'Lasix'
+- assertVisible: 'Three memory anchors'
+- tapOn: 'Back'
+- tapOn: 'Library'
+- tapOn:
+    id: 'library-search'
+- inputText: 'Lasix'
+- assertVisible: 'Furosemide'

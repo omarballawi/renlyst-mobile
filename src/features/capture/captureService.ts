@@ -1,0 +1,258 @@
+import * as Crypto from 'expo-crypto';
+import { Directory, File, Paths } from 'expo-file-system';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import type { SQLiteDatabase } from 'expo-sqlite';
+
+import type { DrugBackup, DrugProductBackup } from '@/domain/backup';
+import { runExclusiveTransaction } from '@/data/database/transactions';
+import { DrugRepository, ProductRepository } from '@/data/repositories';
+import { persistenceActions } from '@/features/capture/imagePipeline';
+
+type ImageOwnerType = 'drug' | 'product';
+
+export type CaptureImageAsset = {
+  uri: string;
+  width: number;
+  height: number;
+};
+
+type PreparedCaptureImage = {
+  id: string;
+  ordinal: number;
+  role: 'original' | 'thumbnail';
+  uri: string;
+  sha256: string;
+  byteSize: number;
+  width: number;
+  height: number;
+  created: boolean;
+};
+
+function digestHex(buffer: ArrayBuffer): Promise<string> {
+  return Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, buffer).then((digest) =>
+    Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(''),
+  );
+}
+
+async function persistManipulatedImage(
+  ownerType: ImageOwnerType,
+  ownerID: string,
+  ordinal: number,
+  role: 'original' | 'thumbnail',
+  sourceUri: string,
+  sourceWidth: number,
+  sourceHeight: number,
+): Promise<PreparedCaptureImage> {
+  const actions = persistenceActions(sourceWidth, sourceHeight, role);
+  const resized = await manipulateAsync(sourceUri, actions, {
+    compress: role === 'thumbnail' ? 0.72 : 0.82,
+    format: SaveFormat.JPEG,
+  });
+  const temporary = new File(resized.uri);
+  const bytes = await temporary.bytes();
+  const sha256 = await digestHex(bytes.buffer);
+  const directory = new Directory(Paths.document, 'renlyst', 'images', ownerType, ownerID);
+  directory.create({ intermediates: true, idempotent: true });
+  const destination = new File(directory, `${ordinal}-${role}-${sha256}.jpg`);
+  const created = !destination.exists;
+  if (created) await temporary.move(destination);
+  else if (temporary.exists) temporary.delete();
+  return {
+    id: `${ownerType}:${ownerID}:${ordinal}:${role}`,
+    ordinal,
+    role,
+    uri: destination.uri,
+    sha256,
+    byteSize: bytes.byteLength,
+    width: resized.width,
+    height: resized.height,
+    created,
+  };
+}
+
+async function prepareImages(
+  ownerType: ImageOwnerType,
+  ownerID: string,
+  assets: readonly CaptureImageAsset[],
+): Promise<PreparedCaptureImage[]> {
+  if (assets.length > 8) throw new Error('A profile can store at most eight package photos.');
+  const prepared: PreparedCaptureImage[] = [];
+  try {
+    for (const [ordinal, asset] of assets.entries()) {
+      prepared.push(
+        await persistManipulatedImage(
+          ownerType,
+          ownerID,
+          ordinal,
+          'original',
+          asset.uri,
+          asset.width,
+          asset.height,
+        ),
+      );
+      prepared.push(
+        await persistManipulatedImage(
+          ownerType,
+          ownerID,
+          ordinal,
+          'thumbnail',
+          asset.uri,
+          asset.width,
+          asset.height,
+        ),
+      );
+    }
+    return prepared;
+  } catch (error) {
+    rollbackPreparedImages(prepared);
+    throw error;
+  }
+}
+
+function rollbackPreparedImages(images: readonly PreparedCaptureImage[]): void {
+  for (const image of images) {
+    if (!image.created) continue;
+    const file = new File(image.uri);
+    if (file.exists) file.delete();
+  }
+}
+
+async function insertPreparedImages(
+  transaction: SQLiteDatabase,
+  ownerType: ImageOwnerType,
+  ownerID: string,
+  images: readonly PreparedCaptureImage[],
+): Promise<void> {
+  for (const image of images) {
+    await transaction.runAsync(
+      `INSERT INTO drug_images (
+        id, drug_id, product_id, ordinal, role, uri, sha256, byte_size, mime_type,
+        width, height, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'image/jpeg', ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        uri = excluded.uri, sha256 = excluded.sha256, byte_size = excluded.byte_size,
+        width = excluded.width, height = excluded.height`,
+      image.id,
+      ownerType === 'drug' ? ownerID : null,
+      ownerType === 'product' ? ownerID : null,
+      image.ordinal,
+      image.role,
+      image.uri,
+      image.sha256,
+      image.byteSize,
+      image.width,
+      image.height,
+      new Date().toISOString(),
+    );
+  }
+}
+
+async function updatePhotoCaches(transaction: SQLiteDatabase, drugID: string): Promise<void> {
+  await transaction.runAsync(
+    `UPDATE drug_profiles SET has_photo = CASE WHEN EXISTS (
+       SELECT 1 FROM drug_images WHERE drug_id = ?
+     ) OR EXISTS (
+       SELECT 1 FROM drug_images di
+       JOIN drug_products dp ON dp.id = di.product_id
+       WHERE dp.profile_id = ?
+     ) THEN 1 ELSE 0 END WHERE id = ?`,
+    drugID,
+    drugID,
+    drugID,
+  );
+}
+
+export class CaptureService {
+  constructor(private readonly db: SQLiteDatabase) {}
+
+  async save(
+    drug: DrugBackup,
+    assets: readonly CaptureImageAsset[],
+    product?: DrugProductBackup,
+  ): Promise<void> {
+    const ownerType: ImageOwnerType = product ? 'product' : 'drug';
+    const ownerID = product?.id ?? drug.id;
+    const images = await prepareImages(ownerType, ownerID, assets);
+    try {
+      await runExclusiveTransaction(this.db, async (transaction) => {
+        const repository = new DrugRepository(transaction);
+        await repository.save(drug);
+        if (product) await new ProductRepository(transaction).save(product);
+        await insertPreparedImages(transaction, ownerType, ownerID, images);
+        await updatePhotoCaches(transaction, drug.id);
+        if (product) {
+          await transaction.runAsync(
+            'UPDATE drug_products SET has_photo = ? WHERE id = ?',
+            assets.length > 0 ? 1 : 0,
+            product.id,
+          );
+        }
+      });
+    } catch (error) {
+      rollbackPreparedImages(images);
+      throw error;
+    }
+  }
+
+  async replaceProduct(
+    drug: DrugBackup,
+    product: DrugProductBackup,
+    assets: readonly CaptureImageAsset[],
+  ): Promise<void> {
+    const oldRows = await this.db.getAllAsync<{ uri: string }>(
+      'SELECT uri FROM drug_images WHERE product_id = ?',
+      product.id,
+    );
+    const images = await prepareImages('product', product.id, assets);
+    try {
+      await runExclusiveTransaction(this.db, async (transaction) => {
+        await new DrugRepository(transaction).save(drug);
+        await new ProductRepository(transaction).save(product);
+        await transaction.runAsync('DELETE FROM drug_images WHERE product_id = ?', product.id);
+        await insertPreparedImages(transaction, 'product', product.id, images);
+        await transaction.runAsync(
+          'UPDATE drug_products SET has_photo = ? WHERE id = ?',
+          assets.length > 0 ? 1 : 0,
+          product.id,
+        );
+        await updatePhotoCaches(transaction, drug.id);
+      });
+    } catch (error) {
+      rollbackPreparedImages(images);
+      throw error;
+    }
+
+    const retained = new Set(images.map((image) => image.uri));
+    for (const row of oldRows) {
+      if (retained.has(row.uri)) continue;
+      const file = new File(row.uri);
+      if (file.exists) file.delete();
+    }
+  }
+
+  async replaceDrug(drug: DrugBackup, assets: readonly CaptureImageAsset[]): Promise<void> {
+    const oldRows = await this.db.getAllAsync<{ uri: string }>(
+      'SELECT uri FROM drug_images WHERE drug_id = ?',
+      drug.id,
+    );
+    const images = await prepareImages('drug', drug.id, assets);
+    try {
+      await runExclusiveTransaction(this.db, async (transaction) => {
+        await new DrugRepository(transaction).save(drug);
+        await transaction.runAsync('DELETE FROM drug_images WHERE drug_id = ?', drug.id);
+        await insertPreparedImages(transaction, 'drug', drug.id, images);
+        await updatePhotoCaches(transaction, drug.id);
+      });
+    } catch (error) {
+      rollbackPreparedImages(images);
+      throw error;
+    }
+
+    const retained = new Set(images.map((image) => image.uri));
+    for (const row of oldRows) {
+      if (retained.has(row.uri)) continue;
+      const file = new File(row.uri);
+      if (file.exists) file.delete();
+    }
+  }
+}

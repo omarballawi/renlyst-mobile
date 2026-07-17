@@ -1,0 +1,107 @@
+name: Quality, exports, and unsigned iOS
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run release:verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: renlyst-ios-export
+          path: dist
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: renlyst-android-export
+          path: dist-android
+          if-no-files-found: error
+
+  unsigned-ios:
+    needs: quality
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate native iOS project
+        run: pnpm exec expo prebuild --platform ios --clean --no-install
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install --repo-update
+      - name: Build unsigned device app
+        shell: bash
+        run: |
+          set -euo pipefail
+          workspace="$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)"
+          if [[ -z "$workspace" ]]; then
+            echo "No generated Xcode workspace found."
+            exit 1
+          fi
+          scheme="$(basename "$workspace" .xcworkspace)"
+          xcodebuild \
+            -workspace "$workspace" \
+            -scheme "$scheme" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path="$(find ios/build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' -print -quit)"
+          if [[ -z "$app_path" ]]; then
+            echo "No unsigned app bundle found."
+            exit 1
+          fi
+          mkdir -p artifact/Payload
+          cp -R "$app_path" artifact/Payload/
+          cd artifact
+          ditto -c -k --sequesterRsrc --keepParent Payload Renlyst-Next-unsigned.ipa
+      - name: Verify unsigned IPA archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="artifact/Renlyst-Next-unsigned.ipa"
+          test -s "$archive"
+          unzip -t "$archive"
+          info_plist="$(unzip -Z1 "$archive" 'Payload/*.app/Info.plist' | head -1)"
+          if [[ -z "$info_plist" ]]; then
+            echo "The IPA does not contain an app Info.plist."
+            exit 1
+          fi
+          echo "Verified $archive with $info_plist"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: renlyst-next-unsigned-ipa
+          path: artifact/Renlyst-Next-unsigned.ipa
+          if-no-files-found: error

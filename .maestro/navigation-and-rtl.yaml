@@ -1,0 +1,26 @@
+appId: com.renlyst.app.next
+name: Core navigation, backup, and live Arabic RTL
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Make today stick.'
+    timeout: 20000
+- tapOn: 'You'
+- scrollUntilVisible:
+    element:
+      text: 'Backup & Data'
+    direction: DOWN
+- tapOn: 'Backup & Data'
+- assertVisible: 'Own every record.'
+- assertVisible: 'Export complete backup'
+- tapOn: 'Back'
+- scrollUntilVisible:
+    element:
+      text: 'Appearance & language'
+    direction: DOWN
+- tapOn: 'العربية'
+- assertVisible: 'أنت'
+- assertVisible: 'المظهر واللغة'
+- tapOn: 'اليوم'
+- assertVisible: 'ثبّت معلومة اليوم.'

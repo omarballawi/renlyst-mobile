@@ -6,6 +6,7 @@ node_modules/
 # Expo
 .expo/
 dist/
+dist-android/
 web-build/
 expo-env.d.ts
 
@@ -32,6 +33,12 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# User backups and imported clinical data never belong in git
+backups/
+fixtures/private/
+*.renlyst-backup.json
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +46,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Test and tool output
+coverage/
+.maestro/screenshots/
+.eslintcache
