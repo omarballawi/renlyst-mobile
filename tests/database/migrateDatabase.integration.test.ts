@@ -7,12 +7,12 @@ describe('database initialization integration', () => {
   it('migrates idempotently and backfills legacy trade names into authoritative products once', async () => {
     const database = new NodeSQLiteDatabase();
     try {
-      await migrateDatabase(database.asExpoDatabase());
+      await migrateDatabase(database.asExpoDatabase(), 'web');
       expect(await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version')).toEqual(
         { user_version: DATABASE_SCHEMA_VERSION },
       );
 
-      const repository = new DrugRepository(database.asExpoDatabase());
+      const repository = new DrugRepository(database.asExpoDatabase(), 'web');
       await repository.save(
         makeDrug({
           tradeNames: ['Lasix', 'Frusid'],
@@ -20,8 +20,8 @@ describe('database initialization integration', () => {
           strengths: ['40 mg'],
         }),
       );
-      await migrateDatabase(database.asExpoDatabase());
-      await migrateDatabase(database.asExpoDatabase());
+      await migrateDatabase(database.asExpoDatabase(), 'web');
+      await migrateDatabase(database.asExpoDatabase(), 'web');
 
       expect(
         await database.getAllAsync<{ trade_name: string }>(

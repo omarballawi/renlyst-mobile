@@ -1,5 +1,5 @@
 import { BackupPersistence, type PromotedBackupImage } from '@/data/backup';
-import { databaseMigrations } from '@/data/database';
+import { databaseMigrations, migrationSQLForPlatform } from '@/data/database';
 import { DrugRepository, ProductRepository } from '@/data/repositories';
 import {
   dailyActivityBackupSchema,
@@ -20,7 +20,9 @@ const secondDrugID = '22222222-2222-4222-8222-222222222222';
 
 async function databaseWithSchema(): Promise<NodeSQLiteDatabase> {
   const database = new NodeSQLiteDatabase();
-  for (const migration of databaseMigrations) await database.execAsync(migration.sql);
+  for (const migration of databaseMigrations) {
+    await database.execAsync(migrationSQLForPlatform(migration, 'web'));
+  }
   return database;
 }
 
@@ -305,7 +307,7 @@ describe('BackupPersistence integration', () => {
       const persistence = new BackupPersistence(database.asExpoDatabase());
       const source = fullBackup();
       await persistence.restore(source, [], 'merge', 'search-hash');
-      const repository = new DrugRepository(database.asExpoDatabase());
+      const repository = new DrugRepository(database.asExpoDatabase(), 'web');
 
       expect(
         (await repository.list({ query: '40 mg' })).map((drug) => drug.scientificName),

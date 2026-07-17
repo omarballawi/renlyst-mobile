@@ -1,5 +1,5 @@
 import { BackupPersistence } from '@/data/backup';
-import { databaseMigrations } from '@/data/database';
+import { databaseMigrations, migrationSQLForPlatform } from '@/data/database';
 import { DrugRepository } from '@/data/repositories';
 import { NodeSQLiteDatabase } from '../helpers/nodeSQLite';
 import { makeDrug } from '../fixtures/backup';
@@ -17,10 +17,12 @@ describe('Library scale integration', () => {
     const database = new NodeSQLiteDatabase();
 
     try {
-      for (const migration of databaseMigrations) await database.execAsync(migration.sql);
+      for (const migration of databaseMigrations) {
+        await database.execAsync(migrationSQLForPlatform(migration, 'web'));
+      }
 
       await database.withExclusiveTransactionAsync(async (transaction) => {
-        const repository = new DrugRepository(transaction);
+        const repository = new DrugRepository(transaction, 'web');
         for (let index = 0; index < profileCount; index += 1) {
           const suffix = index.toString().padStart(4, '0');
           await repository.save(
@@ -37,7 +39,7 @@ describe('Library scale integration', () => {
         }
       });
 
-      const repository = new DrugRepository(database.asExpoDatabase());
+      const repository = new DrugRepository(database.asExpoDatabase(), 'web');
       const summary = await repository.summary(new Date('2025-06-15T12:00:00.000Z'));
       const latinResult = await repository.list({ query: 'ScaleBrand0999' });
       const arabicResult = await repository.list({ query: 'الاختبار' });

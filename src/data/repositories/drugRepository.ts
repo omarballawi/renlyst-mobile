@@ -77,6 +77,12 @@ function ftsQuery(value: string): string {
     .join(' AND ');
 }
 
+function tokenLikeSQL(column: string, tokenCount: number): string {
+  return Array.from({ length: tokenCount }, (_, index) => `${column} LIKE $contains${index}`).join(
+    ' AND ',
+  );
+}
+
 const sortSQL: Record<LibrarySort, string> = {
   name: 'dp.scientific_name COLLATE NOCASE ASC',
   recent: 'COALESCE(dp.last_seen_date, dp.date_added) DESC, dp.scientific_name COLLATE NOCASE ASC',
@@ -85,7 +91,10 @@ const sortSQL: Record<LibrarySort, string> = {
 };
 
 export class DrugRepository {
-  constructor(private readonly db: SQLiteDatabase) {}
+  constructor(
+    private readonly db: SQLiteDatabase,
+    private readonly platform = Platform.OS,
+  ) {}
 
   async get(id: string): Promise<DrugBackup | null> {
     const row = await this.db.getFirstAsync<DrugRow>(
@@ -123,30 +132,36 @@ export class DrugRepository {
     const parameters: Record<string, string | number> = { $limit: options.limit ?? 10_000 };
 
     if (query) {
-      if (Platform.OS === 'web') {
+      const queryTerms = query.toLocaleLowerCase().split(/\s+/u).filter(Boolean);
+      const profileContains = tokenLikeSQL('lower(dp.payload_json)', queryTerms.length);
+      const productContains = tokenLikeSQL('lower(payload_json)', queryTerms.length);
+
+      if (this.platform === 'web') {
         where.push(`(
-          lower(dp.payload_json) LIKE $contains
+          ${profileContains}
           OR dp.id IN (
             SELECT profile_id FROM drug_products
-            WHERE profile_id IS NOT NULL AND lower(payload_json) LIKE $contains
+            WHERE profile_id IS NOT NULL AND ${productContains}
           )
         )`);
       } else {
         where.push(`(
           dp.rowid IN (SELECT rowid FROM drug_profiles_fts WHERE drug_profiles_fts MATCH $query)
-          OR lower(dp.payload_json) LIKE $contains
+          OR ${profileContains}
           OR dp.id IN (
             SELECT profile_id FROM drug_products
             WHERE profile_id IS NOT NULL
               AND (
                 rowid IN (SELECT rowid FROM drug_products_fts WHERE drug_products_fts MATCH $query)
-                OR lower(payload_json) LIKE $contains
+                OR ${productContains}
               )
           )
         )`);
         parameters.$query = ftsQuery(query);
       }
-      parameters.$contains = `%${query.toLocaleLowerCase()}%`;
+      queryTerms.forEach((term, index) => {
+        parameters[`$contains${index}`] = `%${term}%`;
+      });
     }
 
     if (scope === 'due') {

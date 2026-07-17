@@ -33,7 +33,7 @@ export function migrationSQLForPlatform(
   return platform === 'web' ? migration.sql.replace(nativeFTSSection, '') : migration.sql;
 }
 
-export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
+export async function migrateDatabase(db: SQLiteDatabase, platform = Platform.OS): Promise<void> {
   await db.execAsync(
     'PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;',
   );
@@ -42,7 +42,7 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
 
   for (const migration of pendingMigrations(currentVersion)) {
     await runExclusiveTransaction(db, async (transaction) => {
-      await transaction.execAsync(migrationSQLForPlatform(migration));
+      await transaction.execAsync(migrationSQLForPlatform(migration, platform));
       await transaction.execAsync(`PRAGMA user_version = ${migration.version};`);
     });
   }
