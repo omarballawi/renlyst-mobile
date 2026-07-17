@@ -48,9 +48,9 @@ The Swift repository at `../pharmashift` is the read-only behavioral and data au
 
 - [ ] Light, dark, English LTR, Arabic RTL, accessibility text sizes, VoiceOver, Reduce Motion, and denied-permission states.
 - [x] No placeholder action, empty handler, TODO-only screen, or knowingly omitted workflow.
-- [ ] Typecheck, lint, unit, contract, migration, backup round-trip, component, Maestro, stress, and Expo Doctor checks pass.
+- [ ] Typecheck, lint, unit, contract, migration, backup round-trip, component, Maestro, stress, and Expo Doctor checks pass. Local quality, component, migration, backup round-trip, stress, and Expo Doctor checks pass; Maestro still needs a device/simulator run.
 - [ ] Physical iPhone acceptance pass succeeds with a real complete backup.
-- [ ] GitHub macOS workflow produces an unsigned IPA that can be installed through AltServer.
+- [x] GitHub macOS workflow produces an unsigned IPA that can be installed through AltServer. A hosted macOS build from commit `e87ca65` produced and payload-inspected an unsigned IPA; every release still rebuilds from its final release commit.
 - [x] Reproducible CI exports both iOS and Android Hermes bundles before the unsigned iOS packaging job.
 - [x] Preview bundle `com.renlyst.app.next` coexists with Swift; production bundle switches only after the complete audit.
 
@@ -64,5 +64,7 @@ The Swift repository at `../pharmashift` is the read-only behavioral and data au
 - 2026-07-17: `expo export --platform ios --clear` produced a fresh 6.2 MB Hermes bundle from 2,384 modules.
 - 2026-07-17: `expo export --platform android --clear` produced a fresh 6.4 MB Hermes bundle from 2,470 modules.
 - 2026-07-17: `pnpm run release:verify` passed the complete quality suite and emitted both the iOS and Android bundle artifacts used by CI.
+- 2026-07-17: GitHub Actions run `29602770663` completed successfully and its `renlyst-next-unsigned-ipa` artifact was downloaded and inspected. The IPA contains `Payload/RenlystNext.app/Info.plist`; it is unsigned and requires sideloading.
+- 2026-07-17: root recovery now records at most ten local, redacted crash diagnostics. The report excludes raw exception text and all library, backup, image, provider, search, and encounter data. It offers retry, return-home, copy, and a manual GitHub issue-form action; no report uploads automatically.
 - Three Maestro flows parse successfully, but still require a simulator/device runner.
-- Remaining acceptance gates are large-text/VoiceOver/Reduce Motion and denied-permission device passes, Maestro device runs, a real Swift backup on an iPhone, and the macOS unsigned-IPA workflow.
+- Remaining acceptance gates are large-text/VoiceOver/Reduce Motion and denied-permission device passes, Maestro device runs, and a real Swift backup on an iPhone. The public preview release must also be rebuilt and reverified from its finalized release commit.

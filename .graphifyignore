@@ -1,0 +1,8 @@
+# Keep the durable graph focused on the React Native runtime and its tests.
+# Product and design documents remain in CODEX_CONTEXT.md; vendored skill material is not application code.
+.agents/
+artifacts/
+graphify-out/
+assets/
+.github/
+*.md

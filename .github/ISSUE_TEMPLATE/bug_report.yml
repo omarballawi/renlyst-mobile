@@ -1,0 +1,57 @@
+name: Crash or reliability report
+description: Report a reproducible Renlyst issue without including private learning data.
+title: '[Crash]: '
+labels: [bug, crash-report]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Renlyst. Do not include drug profiles, backups, package photos, patient/encounter notes, API keys, provider settings, or search text. Renlyst does not upload diagnostics automatically.
+  - type: input
+    id: version
+    attributes:
+      label: App version and build
+      description: For example, 0.1.0 (1).
+      placeholder: 0.1.0 (1)
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - iOS
+        - Android
+        - Expo web preview
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Safe reproduction steps
+      description: Describe only interface actions. Replace library content with generic placeholders such as “a profile”.
+      placeholder: |
+        1. Open Library.
+        2. Tap a profile card.
+        3. The app returns to the recovery screen.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Privacy-safe diagnostics (optional)
+      description: Paste only the text created by “Copy diagnostics”. Do not add screenshots containing clinical data.
+      render: text
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed drug data, backups, images, searches, encounter content, API keys, and provider configuration.
+          required: true

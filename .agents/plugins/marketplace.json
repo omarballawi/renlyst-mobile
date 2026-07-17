@@ -1,0 +1,20 @@
+{
+  "name": "renlyst-local",
+  "interface": {
+    "displayName": "Renlyst Local"
+  },
+  "plugins": [
+    {
+      "name": "renlyst-toolkit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/renlyst-toolkit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

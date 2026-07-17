@@ -1,6 +1,8 @@
 node_modules
+.agents
 coverage
 dist
 ios
 android
+graphify-out
 pnpm-lock.yaml

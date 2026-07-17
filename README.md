@@ -41,3 +41,9 @@ User backups and imported clinical data are deliberately gitignored. Provider cr
 The `Quality, exports, and unsigned iOS` GitHub workflow runs the full quality gate, uploads separate iOS and Android Expo exports, builds the preview iOS target without code signing, verifies the IPA archive, and uploads an unsigned IPA suitable for re-signing through AltStore/AltServer. It deliberately uses the preview bundle identifier and does not switch the production identifier.
 
 See [PRODUCT.md](./PRODUCT.md), [DESIGN.md](./DESIGN.md), and [MIGRATION_PARITY.md](./MIGRATION_PARITY.md) before changing behavior or UI.
+
+## Codex handoff
+
+This checkout is self-contained for Codex work. Read [CODEX_CONTEXT.md](./CODEX_CONTEXT.md), then use the local marketplace at `.agents/plugins/marketplace.json` to install `renlyst-toolkit` once per machine. The plugin exposes focused UI, Graphify, stability, and release wrappers; its complete pinned source copies and refresh policy are recorded in [VENDORED_SKILLS.md](./VENDORED_SKILLS.md).
+
+The checked-in `graphify-out/` is generated only from the Expo/TypeScript runtime and tests. Do not merge the read-only Swift reference graph into it. After source changes, run `graphify update .`.

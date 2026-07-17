@@ -1,0 +1,18 @@
+{
+  "name": "renlyst-toolkit",
+  "version": "0.1.0",
+  "description": "Offline-first React Native workflow for Renlyst design, graph queries, stability, and releases.",
+  "author": {
+    "name": "Renlyst"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Renlyst Toolkit",
+    "shortDescription": "RN design, graph, stability, and release workflow.",
+    "longDescription": "Project-local, version-pinned Codex guidance for the Renlyst Expo application. It keeps source-of-truth design, migration, privacy, graph, and unsigned-preview release procedures beside the code.",
+    "developerName": "Renlyst",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use the Renlyst project context and the appropriate toolkit wrapper before making a change."
+  }
+}

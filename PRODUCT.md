@@ -2,6 +2,10 @@
 
 Renlyst is an offline-first pharmacy learning companion for pharmacy students. It turns medicine packages, trusted references, shift observations, and deliberate practice into a private, searchable body of clinical knowledge.
 
+## Platform: adaptive
+
+Renlyst uses React Native and Expo to deliver native-feeling iOS and Android experiences from one TypeScript codebase. Platform conventions are respected while the product, privacy model, offline behavior, bilingual Arabic/English support, and data contract remain identical.
+
 ## Product model
 
 An active-ingredient profile owns clinical knowledge. Many marketed brand products may attach to that profile with their own package photo, manufacturer, strength, form, route, leaflet, country, and shelf evidence. Removing a brand does not remove the ingredient profile. Removing a profile follows an explicit Keep History or Erase History policy.

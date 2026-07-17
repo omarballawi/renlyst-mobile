@@ -17,11 +17,12 @@ import {
 } from '@expo-google-fonts/noto-sans-arabic';
 import { useFonts } from 'expo-font';
 import { getLocales } from 'expo-localization';
-import { Stack } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { AppProviders } from '@/providers/AppProviders';
+import { AppCrashBoundary } from '@/diagnostics/AppCrashBoundary';
 import { translateCopy } from '@/localization/copy';
 import { lightColors } from '@/ui/theme';
 
@@ -55,22 +56,31 @@ export default function RootLayout() {
 
   if (!fontsLoaded) return <LoadingApp />;
 
+  return <RootApp />;
+}
+
+function RootApp() {
+  const pathname = usePathname();
+  const router = useRouter();
+
   return (
-    <AppProviders fallback={<LoadingApp />}>
-      <StatusBar style="auto" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="capture"
-          options={{ presentation: 'formSheet', sheetGrabberVisible: true }}
-        />
-        <Stack.Screen
-          name="add"
-          options={{ presentation: 'formSheet', sheetGrabberVisible: true }}
-        />
-        <Stack.Screen name="drug/[id]" options={{ presentation: 'card' }} />
-      </Stack>
-    </AppProviders>
+    <AppCrashBoundary route={pathname} onReturnHome={() => router.replace('/(tabs)/today')}>
+      <AppProviders fallback={<LoadingApp />}>
+        <StatusBar style="auto" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="capture"
+            options={{ presentation: 'formSheet', sheetGrabberVisible: true }}
+          />
+          <Stack.Screen
+            name="add"
+            options={{ presentation: 'formSheet', sheetGrabberVisible: true }}
+          />
+          <Stack.Screen name="drug/[id]" options={{ presentation: 'card' }} />
+        </Stack>
+      </AppProviders>
+    </AppCrashBoundary>
   );
 }
 

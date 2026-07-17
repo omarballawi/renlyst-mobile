@@ -51,3 +51,24 @@ fixtures/private/
 coverage/
 .maestro/screenshots/
 .eslintcache
+
+# Local release artifacts are reproducible from GitHub Actions and never committed
+artifacts/
+
+# Portable Graphify outputs stay tracked; machine-local runtime output does not
+graphify-out/memory/
+graphify-out/reflections/
+graphify-out/raw/
+graphify-out/.graphify_cache/
+graphify-out/.graphify_history/
+graphify-out/.graphify_analysis.json
+graphify-out/.graphify_root
+graphify-out/.graphify_detect.json
+graphify-out/.graphify_extract.json
+graphify-out/.graphify_ast.json
+graphify-out/.graphify_semantic*.json
+graphify-out/.graphify_cached.json
+graphify-out/.graphify_uncached.txt
+graphify-out/.graphify_chunk_*.json
+graphify-out/.graphify_*.tmp
+graphify-out/[0-9]*/

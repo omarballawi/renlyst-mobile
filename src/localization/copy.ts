@@ -1,6 +1,15 @@
 import type { AppLanguage } from './LocaleProvider';
 
 const arabicCopy: Record<string, string> = {
+  'RENLYST RECOVERY': 'استعادة رينليست',
+  'Let’s get you back to learning.': 'لنُعدك إلى التعلّم.',
+  'Renlyst hit an unexpected interface error. Your library, images, and private learning records were not included in the diagnostic report.':
+    'واجه رينليست خطأً غير متوقع في الواجهة. لم تُدرج مكتبتك أو صورك أو سجلات تعلّمك الخاصة في تقرير التشخيص.',
+  'Try again': 'حاول مرة أخرى',
+  'Return home': 'العودة إلى الرئيسية',
+  'Copy diagnostics': 'نسخ التشخيص',
+  'Diagnostics copied': 'تم نسخ التشخيص',
+  'Report a bug': 'الإبلاغ عن خطأ',
   Today: 'اليوم',
   Library: 'المكتبة',
   Practice: 'التدريب',
