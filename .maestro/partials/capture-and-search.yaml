@@ -1,6 +1,6 @@
 appId: com.renlyst.app.next
 ---
-- launchApp
+- runFlow: open-renlyst.yaml
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
@@ -14,11 +14,13 @@ appId: com.renlyst.app.next
     id: 'capture-brand'
 - inputText: 'Lasix'
 - tapOn:
-    text: 'Save and open profile'
+    id: 'capture-save-open'
     retryTapIfNoChange: true
 - extendedWaitUntil:
-    visible: 'Furosemide'
+    visible:
+      id: 'drug-profile-root'
     timeout: 20000
+- assertVisible: 'Furosemide'
 - assertVisible: 'Lasix'
 - assertVisible: 'Three memory anchors'
 - tapOn: 'Back'

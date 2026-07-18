@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { SQLiteProvider } from 'expo-sqlite';
 
+import { databaseOpenOptions } from './databaseOptions';
 import { migrateDatabase } from './migrateDatabase';
 import { retryBusyDatabaseOperation } from './databaseRetry';
 
@@ -12,7 +13,12 @@ async function initializeDatabase(db: Parameters<typeof migrateDatabase>[0]): Pr
 
 export function DatabaseProvider({ children }: PropsWithChildren) {
   return (
-    <SQLiteProvider databaseName={DATABASE_NAME} onInit={initializeDatabase} useSuspense>
+    <SQLiteProvider
+      databaseName={DATABASE_NAME}
+      onInit={initializeDatabase}
+      options={databaseOpenOptions}
+      useSuspense
+    >
       {children}
     </SQLiteProvider>
   );

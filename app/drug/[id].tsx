@@ -402,7 +402,7 @@ export default function DrugProfileScreen() {
     empty: colors.line,
   };
   return (
-    <Screen>
+    <Screen testID="drug-profile-root">
       <ScrollView ref={scrollRef} stickyHeaderIndices={[2]} contentContainerStyle={styles.content}>
         <View style={styles.navigation}>
           <PressableScale

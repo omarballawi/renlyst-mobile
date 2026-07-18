@@ -1,0 +1,8 @@
+appId: com.renlyst.app.next
+---
+- launchApp
+- runFlow:
+    when:
+      visible: 'Renlyst Next'
+    commands:
+      - tapOn: 'Renlyst Next'

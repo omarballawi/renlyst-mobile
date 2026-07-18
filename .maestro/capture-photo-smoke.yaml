@@ -1,7 +1,7 @@
 appId: com.renlyst.app.next
 name: Crop, hash, save, and reopen a package image
 ---
-- launchApp
+- runFlow: partials/open-renlyst.yaml
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
@@ -33,11 +33,13 @@ name: Crop, hash, save, and reopen a package image
     id: 'capture-brand'
 - inputText: 'Lasix'
 - tapOn:
-    text: 'Save and open profile'
+    id: 'capture-save-open'
     retryTapIfNoChange: true
 - extendedWaitUntil:
-    visible: 'Furosemide package'
+    visible:
+      id: 'drug-profile-root'
     timeout: 30000
+- assertVisible: 'Furosemide package'
 - assertVisible: 'Package preview.*Brands & packages.*'
 - tapOn: 'Back'
 - tapOn:

@@ -272,7 +272,11 @@ export default function CaptureScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <ScrollView
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="always"
+          contentContainerStyle={styles.content}
+        >
           <View style={styles.titleRow}>
             <View style={styles.titleCopy}>
               <AppText variant="label" color={colors.aqua}>
@@ -710,6 +714,7 @@ export default function CaptureScreen() {
           <PrimaryButton
             label={save.isPending ? 'Saving package…' : 'Save and open profile'}
             icon="check"
+            testID="capture-save-open"
             disabled={save.isPending}
             onPress={() => beginSave('open')}
           />

@@ -55,13 +55,13 @@
     "semantic_hash": "1bedbc5a478d51784b3a3f5f5f85687f"
   },
   "app/capture.tsx": {
-    "mtime": 1784351463.49745,
-    "ast_hash": "be8a740f78d3532227e07372f0039044",
+    "mtime": 1784415722.421105,
+    "ast_hash": "8091964ac8ae1a1c250cb52a76391e85",
     "semantic_hash": ""
   },
   "app/drug/[id].tsx": {
-    "mtime": 1784341036.6763213,
-    "ast_hash": "009997c543667fe06bc610c9408c6017",
+    "mtime": 1784415722.422186,
+    "ast_hash": "f9c97631f2d7338db6b5feaa032e5718",
     "semantic_hash": ""
   },
   "app/drug/[id]/brand/[productID].tsx": {
@@ -230,8 +230,8 @@
     "semantic_hash": "19beafa8e86b1544faf08e58d6dd891a"
   },
   "src/data/database/DatabaseProvider.tsx": {
-    "mtime": 1784340698.8518624,
-    "ast_hash": "848e21a778c3a847175575d1f7813ff4",
+    "mtime": 1784415722.420091,
+    "ast_hash": "d29c0c93ffccaab1abd348646a91a267",
     "semantic_hash": ""
   },
   "src/data/database/index.ts": {
@@ -810,8 +810,8 @@
     "semantic_hash": ""
   },
   ".maestro/navigation-and-rtl.yaml": {
-    "mtime": 1784412937.9550333,
-    "ast_hash": "901d60d05d19868320ca63887435632e",
+    "mtime": 1784415722.4335063,
+    "ast_hash": "7cd4d36649e81ddb90bb0deb2ce9e634",
     "semantic_hash": ""
   },
   ".maestro/practice-smoke.yaml": {
@@ -865,13 +865,13 @@
     "semantic_hash": ""
   },
   ".maestro/provider-settings-smoke.yaml": {
-    "mtime": 1784412937.9520938,
-    "ast_hash": "b007f99e22fbf369bf924ca87204b6d0",
+    "mtime": 1784415722.4335063,
+    "ast_hash": "1bb30eb2382c3b997b3a6862792ba97a",
     "semantic_hash": ""
   },
   ".maestro/capture-photo-smoke.yaml": {
-    "mtime": 1784412937.949092,
-    "ast_hash": "1a43068e6e6d77d086b3c408bae9647e",
+    "mtime": 1784415722.432502,
+    "ast_hash": "4986a9cfaf64460da14869a25c1e2c55",
     "semantic_hash": ""
   },
   ".maestro/partials/pick-first-image.yaml": {
@@ -890,8 +890,23 @@
     "semantic_hash": ""
   },
   ".maestro/partials/capture-and-search.yaml": {
-    "mtime": 1784412937.9480898,
-    "ast_hash": "131a6d797c59be8b92e4bb9ef65111f4",
+    "mtime": 1784415722.432502,
+    "ast_hash": "bd9942334c61daa3bd0257ffe1fb0057",
+    "semantic_hash": ""
+  },
+  "src/data/database/databaseOptions.ts": {
+    "mtime": 1784415722.419052,
+    "ast_hash": "434e24e92216a88ba9ea9f69f2634e4e",
+    "semantic_hash": ""
+  },
+  "tests/database/databaseOptions.test.ts": {
+    "mtime": 1784415722.420091,
+    "ast_hash": "aa1092542c5c1a1f0b99751f90a3103c",
+    "semantic_hash": ""
+  },
+  ".maestro/partials/open-renlyst.yaml": {
+    "mtime": 1784415722.431282,
+    "ast_hash": "dbb4751d1c96236a170e3430d16df4b2",
     "semantic_hash": ""
   }
 }

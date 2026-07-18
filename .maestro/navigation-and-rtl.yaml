@@ -1,7 +1,7 @@
 appId: com.renlyst.app.next
 name: Core navigation, backup, and live Arabic RTL
 ---
-- launchApp
+- runFlow: partials/open-renlyst.yaml
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
