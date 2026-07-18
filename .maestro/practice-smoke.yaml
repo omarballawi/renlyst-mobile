@@ -3,7 +3,8 @@ name: Practice always opens as a five-question session
 ---
 - runFlow: capture-and-search.yaml
 - hideKeyboard
-- tapOn: 'Practice'
+- tapOn:
+    id: 'tab-practice'
 - tapOn: 'Start Smart Session'
 - extendedWaitUntil:
     visible: 'Question 1 of 5.*'

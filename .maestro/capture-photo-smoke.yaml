@@ -29,6 +29,12 @@ name: Crop, hash, save, and reopen a package image
 - tapOn:
     id: 'capture-strength'
 - inputText: '40 mg'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'capture-dosage-form'
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: 'capture-dosage-form'
 - inputText: 'Tablet'
@@ -39,5 +45,6 @@ name: Crop, hash, save, and reopen a package image
     timeout: 30000
 - assertVisible: 'Package preview.*Brands & packages.*'
 - tapOn: 'Back'
-- tapOn: 'Library'
+- tapOn:
+    id: 'tab-library'
 - assertVisible: 'Furosemide'

@@ -33,6 +33,7 @@ export default function TabLayout() {
           fontFamily: isRTL ? fonts.arabicSemiBold : fonts.bodySemiBold,
           fontSize: 11,
         },
+        tabBarButtonTestID: `tab-${route.name}`,
         tabBarIcon: ({ color, size }) => (
           <Icon name={icons[route.name] ?? 'today'} color={color} size={size} />
         ),

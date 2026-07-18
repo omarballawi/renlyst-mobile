@@ -7,7 +7,8 @@ name: Protected provider settings save and reopen without exposing keys
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
-- tapOn: 'You'
+- tapOn:
+    id: 'tab-you'
 - scrollUntilVisible:
     element:
       text: 'Providers & protected keys'

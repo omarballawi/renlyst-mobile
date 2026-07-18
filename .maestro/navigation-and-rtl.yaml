@@ -6,7 +6,8 @@ name: Core navigation, backup, and live Arabic RTL
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
-- tapOn: 'You'
+- tapOn:
+    id: 'tab-you'
 - scrollUntilVisible:
     element:
       text: 'Backup & Data'
