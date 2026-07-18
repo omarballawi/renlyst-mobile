@@ -1,12 +1,11 @@
-import type { PropsWithChildren } from 'react';
-import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, {
-  ReduceMotion,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import {
+  Animated,
+  Pressable,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { useLocale } from '@/localization/LocaleProvider';
 
@@ -26,36 +25,45 @@ export function PressableScale({
   ...props
 }: PressableScaleProps) {
   const { t } = useLocale();
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
+  const [scale] = useState(() => new Animated.Value(1));
+  const [opacity] = useState(() => new Animated.Value(1));
+  const animation = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(
+    () => () => {
+      animation.current?.stop();
+      scale.stopAnimation();
+      opacity.stopAnimation();
+    },
+    [opacity, scale],
+  );
+
+  const animatePress = (pressed: boolean) => {
+    animation.current?.stop();
+    animation.current = Animated.parallel([
+      Animated.spring(scale, {
+        toValue: pressed ? 0.982 : 1,
+        stiffness: 400,
+        damping: 30,
+        mass: 1,
+        useNativeDriver: false,
+      }),
+      Animated.timing(opacity, {
+        toValue: pressed ? 0.9 : 1,
+        duration: pressed ? 90 : 120,
+        useNativeDriver: false,
+      }),
+    ]);
+    animation.current.start();
+  };
 
   const pressIn: NonNullable<PressableProps['onPressIn']> = (event) => {
-    // Reanimated shared values are mutable UI-thread containers by design.
-    // eslint-disable-next-line react-hooks/immutability
-    scale.value = withSpring(0.982, {
-      stiffness: 400,
-      damping: 30,
-      reduceMotion: ReduceMotion.System,
-    });
-    // eslint-disable-next-line react-hooks/immutability
-    opacity.value = withTiming(0.9, { duration: 90, reduceMotion: ReduceMotion.System });
+    animatePress(true);
     onPressIn?.(event);
   };
 
   const pressOut: NonNullable<PressableProps['onPressOut']> = (event) => {
-    // Reanimated shared values are mutable UI-thread containers by design.
-    // eslint-disable-next-line react-hooks/immutability
-    scale.value = withSpring(1, {
-      stiffness: 400,
-      damping: 30,
-      reduceMotion: ReduceMotion.System,
-    });
-    // eslint-disable-next-line react-hooks/immutability
-    opacity.value = withTiming(1, { duration: 120, reduceMotion: ReduceMotion.System });
+    animatePress(false);
     onPressOut?.(event);
   };
 
@@ -70,7 +78,11 @@ export function PressableScale({
       }
       onPressIn={pressIn}
       onPressOut={pressOut}
-      style={[{ minHeight: 44, justifyContent: 'center' }, style, animatedStyle]}
+      style={[
+        { minHeight: 44, justifyContent: 'center' },
+        style,
+        { opacity, transform: [{ scale }] },
+      ]}
     >
       {children}
     </AnimatedPressable>

@@ -1,6 +1,7 @@
 appId: com.renlyst.app.next
 name: Crop, hash, save, and reopen a package image
 ---
+- stopApp
 - launchApp
 - extendedWaitUntil:
     visible: 'Make today stick.'

@@ -1,29 +1,30 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import {
   ActivityIndicator,
   Image,
   Modal,
+  PanResponder,
   Pressable,
   StyleSheet,
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnUI,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-} from 'react-native-reanimated';
 
 import { useLocale } from '@/localization/LocaleProvider';
 import { editorResizeActions } from '@/features/capture/imagePipeline';
 import { AppText, PressableScale, PrimaryButton } from '@/ui/components';
+import { useReducedMotion } from '@/ui/motion/useReducedMotion';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
-const AnimatedImage = Animated.createAnimatedComponent(Image);
+type EditorTransform = { x: number; y: number; zoom: number };
+
+function touchDistance(touches: readonly { pageX: number; pageY: number }[]): number {
+  const [first, second] = touches;
+  if (!first || !second) return 0;
+  return Math.hypot(second.pageX - first.pageX, second.pageY - first.pageY);
+}
 
 export function ImageEditorModal({
   asset,
@@ -65,12 +66,9 @@ function ImageEditor({
   const imageWidth = Math.max(1, source?.width ?? 1);
   const imageHeight = Math.max(1, source?.height ?? 1);
   const baseScale = Math.max(viewportWidth / imageWidth, viewportHeight / imageHeight);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const startX = useSharedValue(0);
-  const startY = useSharedValue(0);
-  const zoom = useSharedValue(1);
-  const startZoom = useSharedValue(1);
+  const [transform, setTransform] = useState<EditorTransform>({ x: 0, y: 0, zoom: 1 });
+  const transformRef = useRef(transform);
+  const gestureStart = useRef({ ...transform, distance: 0 });
 
   useEffect(() => {
     if (initialResizeActions.length === 0) return;
@@ -94,58 +92,56 @@ function ImageEditor({
     };
   }, [asset, initialResizeActions]);
 
-  const constrain = (x: number, y: number, scale: number) => {
-    'worklet';
-    const maxX = Math.max(0, (imageWidth * baseScale * scale - viewportWidth) / 2);
-    const maxY = Math.max(0, (imageHeight * baseScale * scale - viewportHeight) / 2);
-    return {
-      x: Math.min(maxX, Math.max(-maxX, x)),
-      y: Math.min(maxY, Math.max(-maxY, y)),
-    };
-  };
+  const constrain = useCallback(
+    (x: number, y: number, scale: number) => {
+      const maxX = Math.max(0, (imageWidth * baseScale * scale - viewportWidth) / 2);
+      const maxY = Math.max(0, (imageHeight * baseScale * scale - viewportHeight) / 2);
+      return {
+        x: Math.min(maxX, Math.max(-maxX, x)),
+        y: Math.min(maxY, Math.max(-maxY, y)),
+      };
+    },
+    [baseScale, imageHeight, imageWidth, viewportHeight, viewportWidth],
+  );
 
-  const pan = Gesture.Pan()
-    .onBegin(() => {
-      startX.value = translateX.value;
-      startY.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      const next = constrain(
-        startX.value + event.translationX,
-        startY.value + event.translationY,
-        zoom.value,
-      );
-      translateX.value = next.x;
-      translateY.value = next.y;
-    });
-  const pinch = Gesture.Pinch()
-    .onBegin(() => {
-      startZoom.value = zoom.value;
-    })
-    .onUpdate((event) => {
-      zoom.value = Math.min(4, Math.max(1, startZoom.value * event.scale));
-      const next = constrain(translateX.value, translateY.value, zoom.value);
-      translateX.value = next.x;
-      translateY.value = next.y;
-    });
-  const gesture = Gesture.Simultaneous(pan, pinch);
-  const imageStyle = useAnimatedStyle(() => ({
-    width: imageWidth * baseScale,
-    height: imageHeight * baseScale,
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: zoom.value },
-    ],
-  }));
+  const updateTransform = useCallback((next: EditorTransform) => {
+    transformRef.current = next;
+    setTransform(next);
+  }, []);
+
+  const panResponder = useMemo(
+    () =>
+      // PanResponder invokes these closures only for native touch events, never during render.
+      // eslint-disable-next-line react-hooks/refs
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => Boolean(source) && !working,
+        onMoveShouldSetPanResponder: () => Boolean(source) && !working,
+        onPanResponderGrant: (event) => {
+          gestureStart.current = {
+            ...transformRef.current,
+            distance: touchDistance(event.nativeEvent.touches),
+          };
+        },
+        onPanResponderMove: (event, gestureState) => {
+          const distance = touchDistance(event.nativeEvent.touches);
+          if (distance > 0 && gestureStart.current.distance === 0) {
+            gestureStart.current = { ...transformRef.current, distance };
+            return;
+          }
+          const start = gestureStart.current;
+          const zoom =
+            distance > 0 && start.distance > 0
+              ? Math.min(4, Math.max(1, start.zoom * (distance / start.distance)))
+              : start.zoom;
+          const next = constrain(start.x + gestureState.dx, start.y + gestureState.dy, zoom);
+          updateTransform({ ...next, zoom });
+        },
+      }),
+    [constrain, source, updateTransform, working],
+  );
 
   const resetTransform = () => {
-    runOnUI(() => {
-      'worklet';
-      translateX.value = 0;
-      translateY.value = 0;
-      zoom.value = 1;
-    })();
+    updateTransform({ x: 0, y: 0, zoom: 1 });
   };
 
   const rotate = async () => {
@@ -164,21 +160,18 @@ function ImageEditor({
   };
 
   const adjustZoom = (delta: number) => {
-    runOnUI((change: number) => {
-      'worklet';
-      const nextZoom = Math.min(4, Math.max(1, zoom.value + change));
-      zoom.value = nextZoom;
-      const next = constrain(translateX.value, translateY.value, nextZoom);
-      translateX.value = next.x;
-      translateY.value = next.y;
-    })(delta);
+    const current = transformRef.current;
+    const zoom = Math.min(4, Math.max(1, current.zoom + delta));
+    const next = constrain(current.x, current.y, zoom);
+    updateTransform({ ...next, zoom });
   };
 
   const saveCrop = async () => {
     if (!source || working) return;
     setWorking(true);
     try {
-      const displayScale = baseScale * zoom.value;
+      const current = transformRef.current;
+      const displayScale = baseScale * current.zoom;
       const cropWidth = Math.min(imageWidth, viewportWidth / displayScale);
       const cropHeight = Math.min(imageHeight, viewportHeight / displayScale);
       const originX = Math.min(
@@ -186,7 +179,7 @@ function ImageEditor({
         Math.max(
           0,
           (imageWidth * displayScale - viewportWidth) / (2 * displayScale) -
-            translateX.value / displayScale,
+            current.x / displayScale,
         ),
       );
       const originY = Math.min(
@@ -194,7 +187,7 @@ function ImageEditor({
         Math.max(
           0,
           (imageHeight * displayScale - viewportHeight) / (2 * displayScale) -
-            translateY.value / displayScale,
+            current.y / displayScale,
         ),
       );
       const result = await manipulateAsync(
@@ -258,14 +251,22 @@ function ImageEditor({
           ]}
         >
           {source ? (
-            <GestureDetector gesture={gesture}>
-              <AnimatedImage
+            <View {...panResponder.panHandlers}>
+              <Image
                 source={{ uri: source.uri }}
                 resizeMode="cover"
-                style={imageStyle}
-                accessibilityLabel="Editable package photo"
+                style={{
+                  width: imageWidth * baseScale,
+                  height: imageHeight * baseScale,
+                  transform: [
+                    { translateX: transform.x },
+                    { translateY: transform.y },
+                    { scale: transform.zoom },
+                  ],
+                }}
+                accessibilityLabel={t('Editable package photo')}
               />
-            </GestureDetector>
+            </View>
           ) : null}
           <View
             pointerEvents="none"

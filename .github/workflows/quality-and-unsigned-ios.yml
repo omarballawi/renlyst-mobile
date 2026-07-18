@@ -114,8 +114,8 @@ jobs:
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
           MAESTRO_DRIVER_STARTUP_TIMEOUT: '120000'
         run: maestro test .maestro
-      - name: Collect Maestro failure evidence
-        if: failure()
+      - name: Collect Maestro and privacy-safe native crash evidence
+        if: always()
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/maestro-tests"
@@ -171,6 +171,8 @@ jobs:
 
           output = Path(os.environ['RUNNER_TEMP']) / 'maestro-tests' / 'renlyst-crash-summary.json'
           output.write_text(json.dumps({'reports': summaries[-10:]}, indent=2), encoding='utf-8')
+          print(f'Renlyst native crash reports: {len(summaries)}')
+          raise SystemExit(1 if summaries else 0)
           PY
       - name: Upload Maestro failure evidence
         if: failure()

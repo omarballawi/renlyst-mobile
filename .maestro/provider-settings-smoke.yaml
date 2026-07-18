@@ -1,6 +1,7 @@
 appId: com.renlyst.app.next
 name: Protected provider settings save and reopen without exposing keys
 ---
+- stopApp
 - launchApp
 - extendedWaitUntil:
     visible: 'Make today stick.'
@@ -47,5 +48,7 @@ name: Protected provider settings save and reopen without exposing keys
       visible:
         id: 'provider-settings-safe-error'
     commands:
-      - assertVisible: 'Your saved keys were not changed.'
-      - assertVisible: 'Try protected settings again'
+      - assertVisible:
+          id: 'provider-settings-safe-error'
+      - assertVisible:
+          id: 'provider-settings-retry'

@@ -1,7 +1,7 @@
 appId: com.renlyst.app.next
 name: Practice always opens as a five-question session
 ---
-- runFlow: capture-and-search.yaml
+- runFlow: partials/capture-and-search.yaml
 - hideKeyboard
 - tapOn:
     id: 'tab-practice'

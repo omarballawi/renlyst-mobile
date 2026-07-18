@@ -517,6 +517,7 @@ export default function ProviderSettingsScreen() {
             Renlyst could not read iOS protected storage. Your saved keys were not changed.
           </AppText>
           <PrimaryButton
+            testID="provider-settings-retry"
             label="Try protected settings again"
             onPress={() => void settings.refetch()}
           />

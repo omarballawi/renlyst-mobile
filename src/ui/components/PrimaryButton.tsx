@@ -12,6 +12,7 @@ type PrimaryButtonProps = {
   icon?: AppIconName;
   disabled?: boolean;
   accessibilityHint?: string;
+  testID?: string;
 };
 
 export function PrimaryButton({
@@ -20,6 +21,7 @@ export function PrimaryButton({
   icon,
   disabled = false,
   accessibilityHint,
+  testID,
 }: PrimaryButtonProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
@@ -29,6 +31,7 @@ export function PrimaryButton({
       accessibilityLabel={t(label)}
       accessibilityHint={accessibilityHint ? t(accessibilityHint) : undefined}
       accessibilityState={{ disabled }}
+      testID={testID}
       disabled={disabled}
       onPress={onPress}
       style={[
