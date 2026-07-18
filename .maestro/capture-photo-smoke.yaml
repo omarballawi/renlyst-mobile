@@ -1,8 +1,7 @@
 appId: com.renlyst.app.next
 name: Crop, hash, save, and reopen a package image
 ---
-- launchApp:
-    clearState: true
+- launchApp
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
@@ -10,10 +9,11 @@ name: Crop, hash, save, and reopen a package image
 - tapOn: 'Open fast capture'
 - scrollUntilVisible:
     element:
-      text: 'Photo library'
+      id: 'capture-photo-library'
     direction: DOWN
     timeout: 15000
-- tapOn: 'Photo library'
+- tapOn:
+    id: 'capture-photo-library'
 - runFlow: partials/pick-first-image.yaml
 - extendedWaitUntil:
     visible: 'Frame the useful evidence.'
@@ -29,12 +29,6 @@ name: Crop, hash, save, and reopen a package image
 - tapOn:
     id: 'capture-strength'
 - inputText: '40 mg'
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: 'capture-dosage-form'
-    direction: DOWN
-    timeout: 10000
 - tapOn:
     id: 'capture-dosage-form'
 - inputText: 'Tablet'

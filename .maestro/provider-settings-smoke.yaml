@@ -1,9 +1,7 @@
 appId: com.renlyst.app.next
 name: Protected provider settings save and reopen without exposing keys
 ---
-- launchApp:
-    clearState: true
-    clearKeychain: true
+- launchApp
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000

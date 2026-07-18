@@ -1,8 +1,7 @@
 appId: com.renlyst.app.next
 name: Capture a known medicine and find it again
 ---
-- launchApp:
-    clearState: true
+- launchApp
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
@@ -17,12 +16,6 @@ name: Capture a known medicine and find it again
 - tapOn:
     id: 'capture-strength'
 - inputText: '40 mg'
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: 'capture-dosage-form'
-    direction: DOWN
-    timeout: 10000
 - tapOn:
     id: 'capture-dosage-form'
 - inputText: 'Tablet'

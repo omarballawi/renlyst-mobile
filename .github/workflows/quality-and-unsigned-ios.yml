@@ -122,6 +122,56 @@ jobs:
           if [[ -d "$HOME/.maestro/tests" ]]; then
             cp -R "$HOME/.maestro/tests/." "$RUNNER_TEMP/maestro-tests/"
           fi
+          /usr/bin/python3 - <<'PY'
+          import glob
+          import json
+          import os
+          from pathlib import Path
+
+          roots = [
+              os.path.expanduser('~/Library/Logs/DiagnosticReports/*.ips'),
+              os.path.expanduser(
+                  '~/Library/Developer/CoreSimulator/Devices/*/data/Library/Logs/CrashReporter/*.ips'
+              ),
+          ]
+          summaries = []
+          decoder = json.JSONDecoder()
+          for pattern in roots:
+              for path in glob.glob(pattern):
+                  try:
+                      raw = Path(path).read_text(encoding='utf-8', errors='replace')
+                      first, offset = decoder.raw_decode(raw)
+                      second, _ = decoder.raw_decode(raw, len(raw) - len(raw[offset:].lstrip()))
+                  except (OSError, ValueError, TypeError):
+                      continue
+
+                  bundle_id = first.get('bundleID') or second.get('bundleID')
+                  process = first.get('app_name') or second.get('procName')
+                  if bundle_id != 'com.renlyst.app.next' and 'renlyst' not in str(process).lower():
+                      continue
+
+                  exception = second.get('exception') or {}
+                  termination = second.get('termination') or {}
+                  os_version = second.get('osVersion') or {}
+                  summaries.append(
+                      {
+                          'timestamp': first.get('timestamp') or second.get('captureTime'),
+                          'platform': 'iOS Simulator',
+                          'bundleId': bundle_id,
+                          'appVersion': first.get('app_version'),
+                          'buildVersion': first.get('build_version'),
+                          'osVersion': os_version.get('train') or first.get('os_version'),
+                          'exceptionType': exception.get('type'),
+                          'exceptionSignal': exception.get('signal'),
+                          'terminationNamespace': termination.get('namespace'),
+                          'terminationCode': termination.get('code'),
+                          'faultingThread': second.get('faultingThread'),
+                      }
+                  )
+
+          output = Path(os.environ['RUNNER_TEMP']) / 'maestro-tests' / 'renlyst-crash-summary.json'
+          output.write_text(json.dumps({'reports': summaries[-10:]}, indent=2), encoding='utf-8')
+          PY
       - name: Upload Maestro failure evidence
         if: failure()
         uses: actions/upload-artifact@v4

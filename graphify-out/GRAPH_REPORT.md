@@ -1,7 +1,7 @@
 # Graph Report - renlyst-mobile  (2026-07-18)
 
 ## Corpus Check
-- 169 files · ~90,548 words
+- 169 files · ~90,530 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2e4d6f4a`
+- Built from commit: `4ea00ada`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -263,12 +263,12 @@ Cohesion: 0.19
 Nodes (8): SettingsRepository, ThemeContext, ThemeContextValue, ThemeMode, themeSettingQueryKey, darkColors, lightColors, ThemeColors
 
 ### Community 43 - "BackupPersistence"
-Cohesion: 0.25
-Nodes (6): generateDeepSeekDrugDraft(), parseAIDrugDraftPayload(), ProviderFailure, testDeepSeekConnection(), testModelList(), testOpenRouterConnection()
+Cohesion: 0.22
+Nodes (7): generateDeepSeekDrugDraft(), parseAIDrugDraftPayload(), parsePackageRecognitionPayload(), ProviderFailure, testDeepSeekConnection(), testModelList(), testOpenRouterConnection()
 
 ### Community 44 - "dateFromLegacy"
-Cohesion: 0.39
-Nodes (6): normalizeCredential(), chatJSON(), errorDetail(), parsePackageRecognitionPayload(), parseProviderJSON(), recognizePackageWithOpenRouter()
+Cohesion: 0.48
+Nodes (5): normalizeCredential(), chatJSON(), errorDetail(), parseProviderJSON(), recognizePackageWithOpenRouter()
 
 ### Community 46 - "Community 46"
 Cohesion: 0.25

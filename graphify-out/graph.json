@@ -567,7 +567,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "app/capture.tsx",
-      "source_location": "L749",
+      "source_location": "L750",
       "_origin": "ast",
       "id": "app_capture_styles",
       "community": 12,
@@ -9870,7 +9870,7 @@
       "source_location": "L428",
       "_origin": "ast",
       "id": "src_services_providers_providerclients_parsepackagerecognitionpayload",
-      "community": 44,
+      "community": 43,
       "norm_label": "parsepackagerecognitionpayload()"
     },
     {
@@ -14616,7 +14616,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/capture.tsx",
-      "source_location": "L749",
+      "source_location": "L750",
       "weight": 1.0,
       "source": "app_capture",
       "target": "app_capture_styles",
@@ -47384,5 +47384,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2e4d6f4ad8f747415c3282e623f7a870acb26e41"
+  "built_at_commit": "4ea00adac5698ac5540d45814fc5def68b2dca12"
 }

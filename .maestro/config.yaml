@@ -1,0 +1,8 @@
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - capture-photo-smoke
+    - provider-settings-smoke
+    - capture-and-search
+    - practice-smoke
+    - navigation-and-rtl

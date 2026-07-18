@@ -586,6 +586,7 @@ export default function CaptureScreen() {
               </AppText>
             </PressableScale>
             <PressableScale
+              testID="capture-photo-library"
               accessibilityRole="button"
               accessibilityLabel="Choose package photos"
               disabled={assets.length >= 8}
