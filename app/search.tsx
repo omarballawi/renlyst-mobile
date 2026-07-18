@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { DrugRow } from '@/features/library/DrugRow';
-import { useDrugList } from '@/features/library/queries';
+import { useDrugList, usePrimaryImageUris } from '@/features/library/queries';
 import { AppText, AppTextInput as TextInput, Icon, PressableScale, Screen } from '@/ui/components';
 import { fonts, radii, spacing, useTheme } from '@/ui/theme';
 
@@ -12,6 +12,7 @@ export default function QuickSearchScreen() {
   const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const results = useDrugList({ query, scope: 'all', sort: 'recent' });
+  const images = usePrimaryImageUris();
 
   return (
     <Screen safeBottom>
@@ -19,7 +20,11 @@ export default function QuickSearchScreen() {
         data={(results.data ?? []).slice(0, query.trim() ? undefined : 8)}
         keyExtractor={(drug) => drug.id}
         renderItem={({ item }) => (
-          <DrugRow drug={item} onPress={() => router.push(`/drug/${item.id}`)} />
+          <DrugRow
+            drug={item}
+            imageUri={images.data?.[item.id]}
+            onPress={() => router.push(`/drug/${item.id}`)}
+          />
         )}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}

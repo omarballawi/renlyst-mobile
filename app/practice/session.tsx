@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -22,11 +22,13 @@ import {
   AppText,
   AppTextInput as TextInput,
   Icon,
+  MotionReveal,
   PressableScale,
   PrimaryButton,
   Screen,
 } from '@/ui/components';
 import { fonts, radii, spacing, useTheme } from '@/ui/theme';
+import { appHaptics } from '@/ui/feedback/haptics';
 
 function RatingButton({
   label,
@@ -79,6 +81,11 @@ function PracticeSessionContent({
   const [committed, setCommitted] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [lastRating, setLastRating] = useState<ReviewRating | null>(null);
+  const answerCommitInFlight = useRef(false);
+  const completionInFlight = useRef(false);
+  const advanceInFlight = useRef(false);
+  const correctCountRef = useRef(0);
   const question = questions[index];
 
   const rate = useMutation({
@@ -93,8 +100,16 @@ function PracticeSessionContent({
     },
     onSuccess: async (_, variables) => {
       setCommitted(true);
-      if (variables.rating === 'Correct') setCorrectCount((value) => value + 1);
+      advanceInFlight.current = false;
+      if (variables.rating === 'Correct') {
+        correctCountRef.current += 1;
+        setCorrectCount(correctCountRef.current);
+      }
+      appHaptics.answerCommitted(variables.rating === 'Correct');
       await queryClient.invalidateQueries({ queryKey: drugQueryKeys.all });
+    },
+    onSettled: () => {
+      answerCommitInFlight.current = false;
     },
   });
 
@@ -102,32 +117,45 @@ function PracticeSessionContent({
     mutationFn: () =>
       new LearningRepository(db).recordCompletedSession({
         questionCount: questions.length,
-        correctCount,
+        correctCount: correctCountRef.current,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: learningQueryKeys.all });
+      appHaptics.sessionCompleted();
       setFinished(true);
+    },
+    onSettled: () => {
+      completionInFlight.current = false;
     },
   });
 
   const commit = (rating: ReviewRating) => {
-    if (!question || committed || rate.isPending) return;
+    if (!question || committed || rate.isPending || answerCommitInFlight.current) return;
+    answerCommitInFlight.current = true;
+    setLastRating(rating);
     rate.mutate({ item: question, rating });
   };
 
   const next = () => {
     if (index + 1 >= questions.length) {
-      if (!complete.isPending) complete.mutate();
+      if (!complete.isPending && !completionInFlight.current) {
+        completionInFlight.current = true;
+        complete.mutate();
+      }
       return;
     }
+    if (advanceInFlight.current) return;
+    advanceInFlight.current = true;
     setIndex((value) => value + 1);
     setResponse('');
     setRevealed(false);
     setCommitted(false);
+    setLastRating(null);
+    rate.reset();
   };
 
   const submitTyped = () => {
-    if (!question || !response.trim()) return;
+    if (!question || !response.trim() || revealed || answerCommitInFlight.current) return;
     setRevealed(true);
     commit(answerMatches(question, response) ? 'Correct' : 'Wrong');
   };
@@ -231,147 +259,167 @@ function PracticeSessionContent({
           ))}
         </View>
 
-        {question.imageUri ? (
-          <Image
-            source={question.imageUri}
-            style={styles.questionImage}
-            contentFit="contain"
-            accessibilityLabel={t('Medicine package for this question')}
-          />
-        ) : null}
-        <View style={styles.questionCopy}>
-          <AppText variant="label" color={colors.mutedInk}>
-            {question.learningObjective.toLocaleUpperCase()}
-          </AppText>
-          <AppText variant="title" color={colors.ink}>
-            {question.prompt}
-          </AppText>
-        </View>
+        <MotionReveal key={question.id} direction="forward" style={styles.questionStage}>
+          {question.imageUri ? (
+            <Image
+              source={question.imageUri}
+              style={styles.questionImage}
+              contentFit="contain"
+              accessibilityLabel={t('Medicine package for this question')}
+            />
+          ) : null}
+          <View style={styles.questionCopy}>
+            <AppText variant="label" color={colors.mutedInk}>
+              {question.learningObjective.toLocaleUpperCase()}
+            </AppText>
+            <AppText variant="title" color={colors.ink}>
+              {question.prompt}
+            </AppText>
+          </View>
 
-        {question.interaction === 'multipleChoice' ? (
-          <View style={styles.choices}>
-            {question.choices.map((choice) => (
-              <PressableScale
-                key={choice}
-                accessibilityRole="button"
-                disabled={committed}
-                onPress={() => {
-                  setResponse(choice);
-                  setRevealed(true);
-                  commit(answerMatches(question, choice) ? 'Correct' : 'Wrong');
-                }}
+          {question.interaction === 'multipleChoice' ? (
+            <View style={styles.choices}>
+              {question.choices.map((choice) => (
+                <PressableScale
+                  key={choice}
+                  accessibilityRole="button"
+                  disabled={revealed || committed || rate.isPending}
+                  onPress={() => {
+                    setResponse(choice);
+                    setRevealed(true);
+                    commit(answerMatches(question, choice) ? 'Correct' : 'Wrong');
+                  }}
+                  style={[
+                    styles.choice,
+                    {
+                      borderColor: response === choice ? colors.coral : colors.line,
+                      backgroundColor: colors.surface,
+                    },
+                  ]}
+                >
+                  <AppText variant="bodyStrong" color={colors.ink}>
+                    {choice}
+                  </AppText>
+                </PressableScale>
+              ))}
+            </View>
+          ) : question.interaction === 'textEntry' ? (
+            <View style={styles.answerArea}>
+              <AppText variant="bodyStrong" color={colors.ink}>
+                Your answer
+              </AppText>
+              <TextInput
+                accessibilityLabel="Your answer"
+                value={response}
+                onChangeText={setResponse}
+                editable={!revealed && !committed && !rate.isPending}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={submitTyped}
                 style={[
-                  styles.choice,
+                  styles.answerInput,
                   {
-                    borderColor: response === choice ? colors.coral : colors.line,
+                    color: colors.ink,
+                    borderColor: colors.line,
                     backgroundColor: colors.surface,
                   },
                 ]}
+              />
+              {!revealed ? (
+                <PrimaryButton
+                  label="Check answer"
+                  disabled={!response.trim()}
+                  onPress={submitTyped}
+                />
+              ) : null}
+            </View>
+          ) : (
+            <View style={styles.answerArea}>
+              {!revealed ? (
+                <PrimaryButton label="Reveal saved answer" onPress={() => setRevealed(true)} />
+              ) : null}
+            </View>
+          )}
+
+          {revealed ? (
+            <MotionReveal direction="up">
+              <View
+                style={[styles.reveal, { backgroundColor: colors.aquaSoft }]}
+                accessibilityLiveRegion="polite"
               >
-                <AppText variant="bodyStrong" color={colors.ink}>
-                  {choice}
+                <AppText variant="label" color={colors.aqua}>
+                  SAVED ANSWER
+                </AppText>
+                <AppText variant="heading" color={colors.ink}>
+                  {question.correctAnswer}
+                </AppText>
+                <AppText color={colors.mutedInk}>{question.explanation}</AppText>
+              </View>
+            </MotionReveal>
+          ) : null}
+
+          {revealed && question.interaction === 'recall' && !committed ? (
+            <View style={styles.ratings}>
+              <RatingButton
+                label="Wrong"
+                color={colors.danger}
+                disabled={rate.isPending}
+                onPress={() => commit('Wrong')}
+              />
+              <RatingButton
+                label="Partly correct"
+                color={colors.saffron}
+                disabled={rate.isPending}
+                onPress={() => commit('Partly correct')}
+              />
+              <RatingButton
+                label="Correct"
+                color={colors.success}
+                disabled={rate.isPending}
+                onPress={() => commit('Correct')}
+              />
+            </View>
+          ) : null}
+          {committed ? (
+            <PrimaryButton
+              label={
+                index === questions.length - 1
+                  ? complete.isPending
+                    ? 'Saving progress…'
+                    : 'Finish session'
+                  : 'Next question'
+              }
+              icon="arrow"
+              disabled={complete.isPending}
+              onPress={next}
+            />
+          ) : null}
+        </MotionReveal>
+        {rate.error ? (
+          <MotionReveal direction="up">
+            <View
+              accessibilityRole="alert"
+              style={[styles.error, { backgroundColor: colors.saffronSoft }]}
+            >
+              <AppText variant="bodyStrong" color={colors.ink}>
+                Your answer is still here.
+              </AppText>
+              <AppText color={colors.mutedInk}>
+                Renlyst could not save this review. Retry without leaving the session.
+              </AppText>
+              <PressableScale
+                accessibilityRole="button"
+                disabled={rate.isPending || !lastRating}
+                onPress={() => {
+                  if (lastRating) commit(lastRating);
+                }}
+              >
+                <AppText variant="bodyStrong" color={colors.coral}>
+                  Try saving answer again
                 </AppText>
               </PressableScale>
-            ))}
-          </View>
-        ) : question.interaction === 'textEntry' ? (
-          <View style={styles.answerArea}>
-            <AppText variant="bodyStrong" color={colors.ink}>
-              Your answer
-            </AppText>
-            <TextInput
-              accessibilityLabel="Your answer"
-              value={response}
-              onChangeText={setResponse}
-              editable={!committed}
-              autoCapitalize="words"
-              returnKeyType="done"
-              onSubmitEditing={submitTyped}
-              style={[
-                styles.answerInput,
-                {
-                  color: colors.ink,
-                  borderColor: colors.line,
-                  backgroundColor: colors.surface,
-                },
-              ]}
-            />
-            {!revealed ? (
-              <PrimaryButton
-                label="Check answer"
-                disabled={!response.trim()}
-                onPress={submitTyped}
-              />
-            ) : null}
-          </View>
-        ) : (
-          <View style={styles.answerArea}>
-            {!revealed ? (
-              <PrimaryButton label="Reveal saved answer" onPress={() => setRevealed(true)} />
-            ) : null}
-          </View>
-        )}
-
-        {revealed ? (
-          <View
-            style={[styles.reveal, { backgroundColor: colors.aquaSoft }]}
-            accessibilityLiveRegion="polite"
-          >
-            <AppText variant="label" color={colors.aqua}>
-              SAVED ANSWER
-            </AppText>
-            <AppText variant="heading" color={colors.ink}>
-              {question.correctAnswer}
-            </AppText>
-            <AppText color={colors.mutedInk}>{question.explanation}</AppText>
-          </View>
-        ) : null}
-
-        {revealed && question.interaction === 'recall' && !committed ? (
-          <View style={styles.ratings}>
-            <RatingButton
-              label="Wrong"
-              color={colors.danger}
-              disabled={rate.isPending}
-              onPress={() => commit('Wrong')}
-            />
-            <RatingButton
-              label="Partly correct"
-              color={colors.saffron}
-              disabled={rate.isPending}
-              onPress={() => commit('Partly correct')}
-            />
-            <RatingButton
-              label="Correct"
-              color={colors.success}
-              disabled={rate.isPending}
-              onPress={() => commit('Correct')}
-            />
-          </View>
-        ) : null}
-        {committed ? (
-          <PrimaryButton
-            label={
-              index === questions.length - 1
-                ? complete.isPending
-                  ? 'Saving progress…'
-                  : 'Finish session'
-                : 'Next question'
-            }
-            icon="arrow"
-            disabled={complete.isPending}
-            onPress={next}
-          />
-        ) : null}
-        {rate.error ? (
-          <View
-            accessibilityRole="alert"
-            style={[styles.error, { backgroundColor: colors.saffronSoft }]}
-          >
-            <AppText color={colors.ink}>
-              {rate.error instanceof Error ? rate.error.message : 'This answer could not be saved.'}
-            </AppText>
-          </View>
+            </View>
+          </MotionReveal>
         ) : null}
         {complete.error ? (
           <View
@@ -465,6 +513,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { flex: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.lg },
   content: { padding: spacing.lg, paddingBottom: spacing.section, gap: spacing.xl },
+  questionStage: { gap: spacing.xl },
   sessionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   close: {
     width: 44,

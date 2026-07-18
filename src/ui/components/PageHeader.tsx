@@ -24,7 +24,11 @@ export function PageHeader({ eyebrow, title, subtitle, onAdd }: PageHeaderProps)
             {isRTL ? eyebrow : eyebrow.toLocaleUpperCase()}
           </AppText>
         ) : null}
-        <AppText variant="display" color={colors.ink}>
+        <AppText
+          variant="display"
+          color={colors.ink}
+          style={[styles.title, isRTL && styles.rtlTitle]}
+        >
           {title}
         </AppText>
         {subtitle ? <AppText color={colors.mutedInk}>{subtitle}</AppText> : null}
@@ -45,8 +49,10 @@ export function PageHeader({ eyebrow, title, subtitle, onAdd }: PageHeaderProps)
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  copy: { flex: 1, gap: spacing.xs },
+  row: { width: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  copy: { flex: 1, flexShrink: 1, minWidth: 0, gap: spacing.xs },
+  title: { flexShrink: 1 },
+  rtlTitle: { fontSize: 34, lineHeight: 45 },
   add: {
     width: 48,
     height: 48,
@@ -54,5 +60,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.xs,
+    flexShrink: 0,
   },
 });

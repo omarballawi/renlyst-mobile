@@ -3,16 +3,17 @@ import { StyleSheet, View } from 'react-native';
 import type { DrugBackup } from '@/domain/backup';
 import { masteryCount, requiredMasteryCount } from '@/domain/drugs/mastery';
 import { dateFromLegacy } from '@/domain/shared/dates';
-import { AppText, Icon, PressableScale } from '@/ui/components';
-import { radii, spacing, useTheme } from '@/ui/theme';
+import { AppText, DrugThumbnail, Icon, PressableScale } from '@/ui/components';
+import { spacing, useTheme } from '@/ui/theme';
 
-type DrugRowProps = { drug: DrugBackup; onPress(): void; now?: Date };
+type DrugRowProps = {
+  drug: DrugBackup;
+  imageUri?: string | null | undefined;
+  onPress(): void;
+  now?: Date;
+};
 
-function initials(name: string): string {
-  return name.trim().slice(0, 2).toLocaleUpperCase() || '?';
-}
-
-export function DrugRow({ drug, onPress, now = new Date() }: DrugRowProps) {
+export function DrugRow({ drug, imageUri, onPress, now = new Date() }: DrugRowProps) {
   const { colors } = useTheme();
   const dueDate = dateFromLegacy(drug.nextReviewDate);
   const due = dueDate !== null && dueDate.valueOf() < now.valueOf() + 86_400_000;
@@ -27,16 +28,7 @@ export function DrugRow({ drug, onPress, now = new Date() }: DrugRowProps) {
       onPress={onPress}
       style={[styles.container, { borderBottomColor: colors.line }]}
     >
-      <View
-        style={[
-          styles.monogram,
-          { backgroundColor: drug.isUnknown ? colors.saffronSoft : colors.aquaSoft },
-        ]}
-      >
-        <AppText variant="label" color={drug.isUnknown ? colors.saffron : colors.aqua}>
-          {initials(displayName)}
-        </AppText>
-      </View>
+      <DrugThumbnail id={drug.id} name={displayName} uri={imageUri} unknown={drug.isUnknown} />
       <View style={styles.copy}>
         <AppText variant="bodyStrong" color={colors.ink} numberOfLines={1}>
           {displayName}
@@ -65,13 +57,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  monogram: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  copy: { flex: 1, gap: 2 },
+  copy: { flex: 1, flexShrink: 1, minWidth: 0, gap: 2 },
   status: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
 });

@@ -16,9 +16,9 @@ import {
   type PharmacologyScale,
 } from '@/domain/clinical/pharmacologyScale';
 import { normalizeIdentity } from '@/domain/drugs/identity';
-import { useDrug, useDrugList } from '@/features/library/queries';
+import { useDrug, useDrugList, usePrimaryImageUris } from '@/features/library/queries';
 import { useLocale } from '@/localization/LocaleProvider';
-import { AppText, Icon, PressableScale, Screen } from '@/ui/components';
+import { AppText, DrugThumbnail, Icon, PressableScale, Screen } from '@/ui/components';
 import { radii, spacing, useTheme, type ThemeColors } from '@/ui/theme';
 
 const categoryOrder: readonly InteractionCategory[] = [
@@ -193,14 +193,23 @@ function relatedProfileID(
 function InteractionRow({
   entry,
   linkedID,
+  imageUri,
 }: {
   entry: DrugInteractionEntry;
   linkedID: string | null;
+  imageUri?: string | null;
 }) {
   const router = useRouter();
   const { colors } = useTheme();
   const content = (
     <>
+      <DrugThumbnail
+        id={linkedID ?? `interaction:${entry.drugName}`}
+        name={entry.drugName}
+        uri={imageUri}
+        size={42}
+        unknown={!linkedID}
+      />
       <View style={styles.interactionCopy}>
         <AppText variant="bodyStrong" color={colors.ink}>
           {entry.drugName}
@@ -240,6 +249,7 @@ export default function StructuredClinicalScreen() {
   const { colors } = useTheme();
   const drug = useDrug(id);
   const allDrugs = useDrugList({ scope: 'all', sort: 'name' });
+  const primaryImages = usePrimaryImageUris();
 
   if (drug.isLoading) {
     return (
@@ -438,13 +448,21 @@ export default function StructuredClinicalScreen() {
                   <AppText variant="bodyStrong" color={categoryColor(category, colors)}>
                     {category} ({entries.length})
                   </AppText>
-                  {entries.map((entry, index) => (
-                    <InteractionRow
-                      key={`${entry.drugName}-${index}`}
-                      entry={entry}
-                      linkedID={relatedProfileID(entry.drugName, allDrugs.data ?? [], profile.id)}
-                    />
-                  ))}
+                  {entries.map((entry, index) => {
+                    const linkedID = relatedProfileID(
+                      entry.drugName,
+                      allDrugs.data ?? [],
+                      profile.id,
+                    );
+                    return (
+                      <InteractionRow
+                        key={`${entry.drugName}-${index}`}
+                        entry={entry}
+                        linkedID={linkedID}
+                        imageUri={linkedID ? (primaryImages.data?.[linkedID] ?? null) : null}
+                      />
+                    );
+                  })}
                 </View>
               );
             })

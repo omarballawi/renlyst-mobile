@@ -1,0 +1,45 @@
+appId: com.renlyst.app.next
+name: Crop, hash, save, and reopen a package image
+---
+- launchApp:
+    clearState: true
+- addMedia:
+    - './assets/icon.png'
+- extendedWaitUntil:
+    visible: 'Make today stick.'
+    timeout: 20000
+- tapOn: 'Capture first package'
+- tapOn: 'Open fast capture'
+- scrollUntilVisible:
+    element:
+      text: 'Photo library'
+    direction: DOWN
+    timeout: 15000
+- tapOn: 'Photo library'
+- runFlow: partials/pick-first-image.yaml
+- extendedWaitUntil:
+    visible: 'Frame the useful evidence.'
+    timeout: 15000
+- tapOn: 'Use this crop'
+- assertVisible: '1/8 selected'
+- tapOn:
+    id: 'capture-active-ingredient'
+- inputText: 'Furosemide'
+- tapOn:
+    id: 'capture-brand'
+- inputText: 'Lasix'
+- tapOn:
+    id: 'capture-strength'
+- inputText: '40 mg'
+- tapOn:
+    id: 'capture-dosage-form'
+- inputText: 'Tablet'
+- hideKeyboard
+- tapOn: 'Save and open profile'
+- extendedWaitUntil:
+    visible: 'Furosemide package'
+    timeout: 30000
+- assertVisible: 'Package preview.*Brands & packages.*'
+- tapOn: 'Back'
+- tapOn: 'Library'
+- assertVisible: 'Furosemide'

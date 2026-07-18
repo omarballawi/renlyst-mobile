@@ -12,6 +12,7 @@ import { useLocale, type AppLanguage } from '@/localization/LocaleProvider';
 import {
   AppText,
   Icon,
+  MotionReveal,
   PageHeader,
   PressableScale,
   Screen,
@@ -122,41 +123,43 @@ export default function YouScreen() {
           title="Learning, protected."
           subtitle="Your library, progress, images, and training records stay on this device unless you export them."
         />
-        <View style={[styles.record, { backgroundColor: theme.colors.ink }]}>
-          <AppText variant="label" color={theme.colors.aqua}>
-            LOCAL LEARNING RECORD
-          </AppText>
-          <View style={styles.recordNumbers}>
-            <View>
-              <AppText variant="display" color={theme.colors.canvas}>
-                {summary.data?.profiles ?? 0}
-              </AppText>
-              <AppText variant="caption" color={theme.colors.canvas}>
-                profiles
-              </AppText>
-            </View>
-            <View>
-              <AppText variant="display" color={theme.colors.canvas}>
-                {summary.data?.mastered ?? 0}
-              </AppText>
-              <AppText variant="caption" color={theme.colors.canvas}>
-                mastered
-              </AppText>
-            </View>
-            <View>
-              <AppText variant="display" color={theme.colors.canvas}>
-                {summary.data?.due ?? 0}
-              </AppText>
-              <AppText variant="caption" color={theme.colors.canvas}>
-                due
-              </AppText>
+        <MotionReveal direction="up">
+          <View style={[styles.record, { backgroundColor: theme.colors.ink }]}>
+            <AppText variant="label" color={theme.colors.aqua}>
+              LOCAL LEARNING RECORD
+            </AppText>
+            <View style={styles.recordNumbers}>
+              <View style={styles.recordMetric}>
+                <AppText variant="display" color={theme.colors.canvas}>
+                  {summary.data?.profiles ?? 0}
+                </AppText>
+                <AppText variant="caption" color={theme.colors.canvas}>
+                  profiles
+                </AppText>
+              </View>
+              <View style={styles.recordMetric}>
+                <AppText variant="display" color={theme.colors.canvas}>
+                  {summary.data?.mastered ?? 0}
+                </AppText>
+                <AppText variant="caption" color={theme.colors.canvas}>
+                  mastered
+                </AppText>
+              </View>
+              <View style={styles.recordMetric}>
+                <AppText variant="display" color={theme.colors.canvas}>
+                  {summary.data?.due ?? 0}
+                </AppText>
+                <AppText variant="caption" color={theme.colors.canvas}>
+                  due
+                </AppText>
+              </View>
             </View>
           </View>
-        </View>
+        </MotionReveal>
 
         <View style={styles.learningSection}>
           <View style={styles.learningHeading}>
-            <View>
+            <View style={styles.learningHeadingCopy}>
               <AppText variant="heading" color={theme.colors.ink}>
                 Practice rhythm
               </AppText>
@@ -337,7 +340,8 @@ const styles = StyleSheet.create({
     gap: spacing.xxl,
   },
   record: { borderRadius: radii.xl, padding: spacing.xl, gap: spacing.lg },
-  recordNumbers: { flexDirection: 'row', justifyContent: 'space-between' },
+  recordNumbers: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  recordMetric: { flexGrow: 1, minWidth: 82 },
   learningSection: { gap: spacing.md },
   learningHeading: {
     flexDirection: 'row',
@@ -345,6 +349,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  learningHeadingCopy: { flex: 1, flexShrink: 1, minWidth: 0 },
   missionMark: {
     width: 48,
     height: 48,
@@ -357,9 +362,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radii.lg,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
+    paddingVertical: spacing.sm,
   },
-  learningMetric: { flex: 1, alignItems: 'center' },
+  learningMetric: { flex: 1, minWidth: 82, alignItems: 'center' },
   reminderRow: {
     minHeight: 82,
     borderWidth: 1,
@@ -385,7 +392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingCopy: { flex: 1 },
+  settingCopy: { flex: 1, flexShrink: 1, minWidth: 0 },
   preferences: { gap: spacing.lg },
   choiceGroup: { gap: spacing.xs },
   choices: { flexDirection: 'row', padding: spacing.xxs, borderRadius: radii.md },

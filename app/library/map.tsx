@@ -2,8 +2,8 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { masteryCount, requiredMasteryCount } from '@/domain/drugs/mastery';
-import { useDrugList } from '@/features/library/queries';
-import { AppText, EmptyState, Icon, PressableScale, Screen } from '@/ui/components';
+import { useDrugList, usePrimaryImageUris } from '@/features/library/queries';
+import { AppText, DrugThumbnail, EmptyState, Icon, PressableScale, Screen } from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 const chapters = [
@@ -25,6 +25,7 @@ export default function KnowledgeMapScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const drugs = useDrugList({ scope: 'all', sort: 'name' });
+  const primaryImages = usePrimaryImageUris();
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -68,6 +69,7 @@ export default function KnowledgeMapScreen() {
                 {matches.map((drug) => {
                   const count = masteryCount(drug);
                   const required = requiredMasteryCount(drug);
+                  const name = drug.scientificName || drug.captureLabel || 'Unknown medicine';
                   return (
                     <PressableScale
                       key={drug.id}
@@ -76,9 +78,16 @@ export default function KnowledgeMapScreen() {
                       onPress={() => router.push(`/drug/${drug.id}`)}
                       style={[styles.drug, { borderBottomColor: colors.line }]}
                     >
+                      <DrugThumbnail
+                        id={drug.id}
+                        name={name}
+                        uri={primaryImages.data?.[drug.id]}
+                        size={46}
+                        unknown={drug.isUnknown}
+                      />
                       <View style={styles.drugCopy}>
                         <AppText variant="bodyStrong" color={colors.ink}>
-                          {drug.scientificName || drug.captureLabel || 'Unknown medicine'}
+                          {name}
                         </AppText>
                         <AppText variant="caption" color={colors.mutedInk}>
                           {drug.drugClass || drug.tradeNames[0] || 'Class not recorded'}
@@ -132,5 +141,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  drugCopy: { flex: 1, gap: 2 },
+  drugCopy: { flex: 1, flexShrink: 1, minWidth: 0, gap: 2 },
 });

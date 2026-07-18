@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import {
   defaultProviderConfiguration,
   ProviderCredentialStore,
   settingKeys,
   SettingsRepository,
+  type ProviderCredential,
   type ProviderConfiguration,
 } from '@/data/repositories';
 import {
@@ -25,6 +26,8 @@ import {
   Screen,
 } from '@/ui/components';
 import { fonts, radii, spacing, useTheme } from '@/ui/theme';
+
+const providerSettingsQueryKey = ['settings', settingKeys.providerConfiguration] as const;
 
 function ToggleRow({
   label,
@@ -65,69 +68,173 @@ function ProtectedField({
   value,
   onChangeText,
   placeholder,
+  configured,
+  removing,
+  onRemove,
 }: {
   label: string;
   value: string;
   onChangeText(value: string): void;
   placeholder: string;
+  configured: boolean;
+  removing: boolean;
+  onRemove(): void;
 }) {
   const { colors } = useTheme();
   return (
-    <TextInput
-      accessibilityLabel={label}
-      value={value}
-      onChangeText={onChangeText}
-      secureTextEntry
-      autoCapitalize="none"
-      autoCorrect={false}
-      placeholder={placeholder}
-      placeholderTextColor={colors.mutedInk}
-      style={[styles.input, { color: colors.ink, borderColor: colors.line }]}
-    />
+    <View style={styles.protectedField}>
+      <View style={styles.fieldLabelRow}>
+        <AppText variant="caption" color={colors.ink}>
+          {label}
+        </AppText>
+        <View style={styles.fieldStatus}>
+          <AppText variant="label" color={configured ? colors.success : colors.mutedInk}>
+            {configured ? 'SAVED ON THIS DEVICE' : 'NOT SAVED'}
+          </AppText>
+          {configured ? (
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${label}`}
+              disabled={removing}
+              onPress={onRemove}
+            >
+              <AppText variant="caption" color={colors.danger}>
+                {removing ? 'Removing…' : 'Remove'}
+              </AppText>
+            </PressableScale>
+          ) : null}
+        </View>
+      </View>
+      <TextInput
+        accessibilityLabel={label}
+        value={value}
+        onChangeText={onChangeText}
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder={configured ? 'Enter a replacement key' : placeholder}
+        placeholderTextColor={colors.mutedInk}
+        style={[styles.input, { color: colors.ink, borderColor: colors.line }]}
+      />
+    </View>
   );
 }
 
 function ProviderSettingsEditor({
   configuration: initial,
-  openRouter: initialOpenRouter,
-  deepSeek: initialDeepSeek,
-  altibbi: initialAltibbi,
+  credentialStatus: initialCredentialStatus,
 }: {
   configuration: ProviderConfiguration;
-  openRouter: string;
-  deepSeek: string;
-  altibbi: string;
+  credentialStatus: Record<ProviderCredential, boolean>;
 }) {
   const router = useRouter();
   const db = useSQLiteContext();
   const { colors } = useTheme();
+  const { t } = useLocale();
   const queryClient = useQueryClient();
   const [configuration, setConfiguration] = useState(initial);
-  const [openRouterKey, setOpenRouterKey] = useState(initialOpenRouter);
-  const [deepSeekKey, setDeepSeekKey] = useState(initialDeepSeek);
-  const [altibbiKey, setAltibbiKey] = useState(initialAltibbi);
+  const [openRouterKey, setOpenRouterKey] = useState('');
+  const [deepSeekKey, setDeepSeekKey] = useState('');
+  const [altibbiKey, setAltibbiKey] = useState('');
+  const [credentialStatus, setCredentialStatus] = useState(initialCredentialStatus);
+  const saveInFlight = useRef(false);
   const save = useMutation({
     mutationFn: async () => {
       if (!configuration.openRouterModel.trim())
         throw new Error('Enter an OpenRouter vision model slug.');
       if (!configuration.deepSeekModel.trim()) throw new Error('Enter a DeepSeek model name.');
-      await Promise.all([
-        new SettingsRepository(db).set(settingKeys.providerConfiguration, configuration),
-        ProviderCredentialStore.set('openRouter', openRouterKey),
-        ProviderCredentialStore.set('deepSeek', deepSeekKey),
-        ProviderCredentialStore.set('altibbi', altibbiKey),
-      ]);
+      const replacements = {
+        ...(openRouterKey.trim() ? { openRouter: openRouterKey } : {}),
+        ...(deepSeekKey.trim() ? { deepSeek: deepSeekKey } : {}),
+        ...(altibbiKey.trim() ? { altibbi: altibbiKey } : {}),
+      };
+      const replacementProviders = Object.keys(replacements) as ProviderCredential[];
+      const previous: Partial<Record<ProviderCredential, string>> = {};
+      for (const provider of replacementProviders) {
+        previous[provider] = await ProviderCredentialStore.get(provider);
+      }
+      try {
+        if (replacementProviders.length > 0) {
+          await ProviderCredentialStore.replaceMany(replacements);
+        }
+        await new SettingsRepository(db).set(settingKeys.providerConfiguration, configuration);
+      } catch (error) {
+        if (replacementProviders.length > 0) {
+          await ProviderCredentialStore.replaceMany(previous).catch(() => undefined);
+        }
+        throw error;
+      }
+      return replacementProviders;
     },
-    onSuccess: () => {
-      queryClient.setQueryData(['settings', settingKeys.providerConfiguration], configuration);
+    onSuccess: (replacedProviders) => {
+      const nextStatus = {
+        ...credentialStatus,
+        ...(replacedProviders.includes('openRouter') ? { openRouter: true } : {}),
+        ...(replacedProviders.includes('deepSeek') ? { deepSeek: true } : {}),
+        ...(replacedProviders.includes('altibbi') ? { altibbi: true } : {}),
+      };
+      setCredentialStatus(nextStatus);
+      queryClient.setQueryData(providerSettingsQueryKey, {
+        configuration,
+        credentialStatus: nextStatus,
+      });
+      setOpenRouterKey('');
+      setDeepSeekKey('');
+      setAltibbiKey('');
+    },
+    onSettled: () => {
+      saveInFlight.current = false;
     },
   });
   const connection = useMutation({
-    mutationFn: (provider: 'openRouter' | 'deepSeek') =>
-      provider === 'openRouter'
-        ? testOpenRouterConnection(openRouterKey, configuration.openRouterModel)
-        : testDeepSeekConnection(deepSeekKey, configuration.deepSeekModel),
+    mutationFn: async (provider: 'openRouter' | 'deepSeek') => {
+      const key =
+        provider === 'openRouter'
+          ? openRouterKey.trim() || (await ProviderCredentialStore.get('openRouter'))
+          : deepSeekKey.trim() || (await ProviderCredentialStore.get('deepSeek'));
+      return provider === 'openRouter'
+        ? testOpenRouterConnection(key, configuration.openRouterModel)
+        : testDeepSeekConnection(key, configuration.deepSeekModel);
+    },
   });
+  const removeCredential = useMutation({
+    mutationFn: async (provider: ProviderCredential) => {
+      await ProviderCredentialStore.set(provider, '');
+      return provider;
+    },
+    onSuccess: (provider) => {
+      const nextStatus = { ...credentialStatus, [provider]: false };
+      setCredentialStatus(nextStatus);
+      queryClient.setQueryData(providerSettingsQueryKey, {
+        configuration,
+        credentialStatus: nextStatus,
+      });
+      if (provider === 'openRouter') setOpenRouterKey('');
+      if (provider === 'deepSeek') setDeepSeekKey('');
+      if (provider === 'altibbi') setAltibbiKey('');
+    },
+  });
+  const confirmRemoveCredential = (provider: ProviderCredential, label: string) => {
+    Alert.alert(
+      t(`Remove ${label}?`),
+      t(
+        'The key will be deleted from protected device storage. Provider features can be configured again later.',
+      ),
+      [
+        { text: t('Cancel'), style: 'cancel' },
+        {
+          text: t('Remove key'),
+          style: 'destructive',
+          onPress: () => removeCredential.mutate(provider),
+        },
+      ],
+    );
+  };
+  const beginSave = () => {
+    if (saveInFlight.current || save.isPending) return;
+    saveInFlight.current = true;
+    save.mutate();
+  };
   const setFlag = (field: keyof ProviderConfiguration, value: boolean) =>
     setConfiguration((current) => ({ ...current, [field]: value }));
 
@@ -214,6 +321,9 @@ function ProviderSettingsEditor({
             value={openRouterKey}
             onChangeText={setOpenRouterKey}
             placeholder="API key"
+            configured={credentialStatus.openRouter}
+            removing={removeCredential.isPending && removeCredential.variables === 'openRouter'}
+            onRemove={() => confirmRemoveCredential('openRouter', 'OpenRouter API key')}
           />
           <TextInput
             accessibilityLabel="OpenRouter vision model"
@@ -258,6 +368,9 @@ function ProviderSettingsEditor({
             value={deepSeekKey}
             onChangeText={setDeepSeekKey}
             placeholder="API key"
+            configured={credentialStatus.deepSeek}
+            removing={removeCredential.isPending && removeCredential.variables === 'deepSeek'}
+            onRemove={() => confirmRemoveCredential('deepSeek', 'DeepSeek API key')}
           />
           <TextInput
             accessibilityLabel="DeepSeek model"
@@ -299,6 +412,9 @@ function ProviderSettingsEditor({
             value={altibbiKey}
             onChangeText={setAltibbiKey}
             placeholder="API key"
+            configured={credentialStatus.altibbi}
+            removing={removeCredential.isPending && removeCredential.variables === 'altibbi'}
+            onRemove={() => confirmRemoveCredential('altibbi', 'Altibbi API key')}
           />
         </View>
         {save.error ? (
@@ -310,6 +426,16 @@ function ProviderSettingsEditor({
               {save.error instanceof Error
                 ? save.error.message
                 : 'Provider settings could not be saved.'}
+            </AppText>
+          </View>
+        ) : null}
+        {removeCredential.error ? (
+          <View
+            accessibilityRole="alert"
+            style={[styles.error, { backgroundColor: colors.saffronSoft }]}
+          >
+            <AppText color={colors.ink}>
+              The protected key could not be removed. Nothing else was changed.
             </AppText>
           </View>
         ) : null}
@@ -351,7 +477,7 @@ function ProviderSettingsEditor({
           label={save.isPending ? 'Saving settings…' : 'Save provider settings'}
           icon="check"
           disabled={save.isPending}
-          onPress={() => save.mutate()}
+          onPress={beginSave}
         />
       </ScrollView>
     </Screen>
@@ -362,25 +488,41 @@ export default function ProviderSettingsScreen() {
   const db = useSQLiteContext();
   const { colors } = useTheme();
   const settings = useQuery({
-    queryKey: ['settings', settingKeys.providerConfiguration],
+    queryKey: providerSettingsQueryKey,
     queryFn: async () => {
-      const [configuration, openRouter, deepSeek, altibbi] = await Promise.all([
-        new SettingsRepository(db).get<ProviderConfiguration>(
-          settingKeys.providerConfiguration,
-          defaultProviderConfiguration,
-        ),
-        ProviderCredentialStore.get('openRouter'),
-        ProviderCredentialStore.get('deepSeek'),
-        ProviderCredentialStore.get('altibbi'),
-      ]);
+      const configuration = await new SettingsRepository(db).get<ProviderConfiguration>(
+        settingKeys.providerConfiguration,
+        defaultProviderConfiguration,
+      );
+      const openRouter = await ProviderCredentialStore.has('openRouter');
+      const deepSeek = await ProviderCredentialStore.has('deepSeek');
+      const altibbi = await ProviderCredentialStore.has('altibbi');
       return {
         configuration: { ...defaultProviderConfiguration, ...configuration },
-        openRouter,
-        deepSeek,
-        altibbi,
+        credentialStatus: { openRouter, deepSeek, altibbi },
       };
     },
   });
+  if (settings.isError)
+    return (
+      <Screen safeBottom>
+        <View style={styles.loadFailure} accessibilityRole="alert">
+          <View style={[styles.failureIcon, { backgroundColor: colors.saffronSoft }]}>
+            <Icon name="warning" color={colors.saffron} size={24} />
+          </View>
+          <AppText variant="title" color={colors.ink}>
+            Protected settings did not open.
+          </AppText>
+          <AppText color={colors.mutedInk}>
+            Renlyst could not read iOS protected storage. Your saved keys were not changed.
+          </AppText>
+          <PrimaryButton
+            label="Try protected settings again"
+            onPress={() => void settings.refetch()}
+          />
+        </View>
+      </Screen>
+    );
   if (!settings.data)
     return (
       <Screen>
@@ -394,6 +536,14 @@ export default function ProviderSettingsScreen() {
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadFailure: { flex: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.md },
+  failureIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: { padding: spacing.lg, paddingBottom: spacing.section, gap: spacing.xxl },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   close: {
@@ -438,6 +588,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 16,
   },
+  protectedField: { gap: spacing.xs },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  fieldStatus: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
   error: { padding: spacing.md, borderRadius: radii.md },
   saved: {
     padding: spacing.md,

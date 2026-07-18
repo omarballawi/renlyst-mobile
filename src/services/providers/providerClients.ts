@@ -479,10 +479,10 @@ function uniqueChoices(values: readonly string[]): string[] {
     .slice(0, 4);
 }
 
-function difficulty(index: number): QuestionDifficulty {
-  if (index < 2) return 'Foundation';
-  if (index < 4) return 'Apply';
-  return 'Challenge';
+function difficulty(type: QuestionType): QuestionDifficulty {
+  return type === 'Warning' || type === 'Counseling' || type === 'Case practice'
+    ? 'Apply'
+    : 'Foundation';
 }
 
 function questionType(value: string): QuestionType {
@@ -492,11 +492,22 @@ function questionType(value: string): QuestionType {
 function providerQuestion(
   item: z.infer<typeof aiPracticeItemSchema>,
   drug: DrugBackup,
-  index: number,
+  _index: number,
 ): PracticeQuestion | null {
   const prompt = item.prompt.trim();
   const answer = item.answer.trim();
-  if (!prompt || !isGrounded(answer, drug)) return null;
+  const explanation = item.explanation.trim() || answer;
+  const promptWords = prompt.split(/\s+/u).filter(Boolean).length;
+  if (
+    !prompt ||
+    promptWords > 18 ||
+    prompt.length > 120 ||
+    answer.length > 160 ||
+    explanation.length > 240 ||
+    /\b(?:see section|references?|package insert|no information is available)\b/iu.test(answer) ||
+    !isGrounded(answer, drug)
+  )
+    return null;
   const type = questionType(item.questionType);
   let choices = uniqueChoices(item.choices);
   let interaction: PracticeInteraction = 'recall';
@@ -520,12 +531,12 @@ function providerQuestion(
     correctAnswer: answer,
     acceptedAnswers: [answer],
     choices,
-    explanation: item.explanation.trim() || answer,
+    explanation,
     questionType: type,
     interaction,
     imageUri: null,
     caseID: null,
-    difficulty: difficulty(index),
+    difficulty: difficulty(type),
     learningObjective: 'Recall a grounded fact from this saved profile',
     sourceField: type,
   };
@@ -748,7 +759,7 @@ export async function generateDeepSeekPracticePack({
         `id=${drug.id}; name=${drug.scientificName}; trade=${drug.tradeNames.join(',')}; class=${drug.drugClass}; use=${drug.indications.slice(0, 2).join(' | ')}; warning=${drug.warnings.slice(0, 2).join(' | ')}; counsel=${drug.counselingSentence}`,
     )
     .join('\n');
-  const prompt = `Create exactly five concise active-recall pharmacy questions using only the local facts below. Focus on weak or due profiles and ramp from foundation to application to challenge. Scientific name and Trade name questions require typed spelling. Multiple-choice Use questions need 3 or 4 unique choices including the exact answer. Output JSON in this shape: {"questions":[{"sourceDrugID":"","prompt":"","answer":"","choices":[],"explanation":"","questionType":"Use"}]}.\nLibrary:\n${snapshots}`;
+  const prompt = `Create exactly five useful active-recall pharmacy questions using only the local facts below. Prioritize identity, main use, safety, and patient counseling; exclude trivia, citations, and administrative facts. Each prompt must be one sentence, at most 18 words, and at most 120 characters. Each answer must be at most 160 characters and express one idea. Each explanation must be at most 240 characters. Use different profiles and learning objectives when the saved evidence allows it. Difficulty follows the objective: identity and use are foundation; safety and counseling are application. Scientific name and Trade name questions require typed spelling. Multiple-choice Use questions need 3 or 4 unique concise choices including the exact answer. Output JSON in this shape: {"questions":[{"sourceDrugID":"","prompt":"","answer":"","choices":[],"explanation":"","questionType":"Use"}]}.\nLibrary:\n${snapshots}`;
 
   try {
     const payload = aiPracticePayloadSchema.parse(
@@ -761,16 +772,21 @@ export async function generateDeepSeekPracticePack({
       }),
     );
     const byID = new Map(candidates.map((drug) => [drug.id, drug]));
+    const generatedPairs = new Set<string>();
     const generated = payload.questions.flatMap((item, index) => {
       const drug = byID.get(item.sourceDrugID);
       const question = drug ? providerQuestion(item, drug, index) : null;
-      return question ? [question] : [];
+      if (!question) return [];
+      const pair = `${question.drugID}:${question.questionType}`;
+      if (generatedPairs.has(pair)) return [];
+      generatedPairs.add(pair);
+      return [question];
     });
     const seen = new Set(generated.map((question) => normalized(question.prompt)));
     for (const question of local) {
       if (generated.length >= 5) break;
       if (seen.has(normalized(question.prompt))) continue;
-      generated.push({ ...question, difficulty: difficulty(generated.length) });
+      generated.push({ ...question, difficulty: difficulty(question.questionType) });
       seen.add(normalized(question.prompt));
     }
     return { questions: generated.slice(0, 5), source: 'deepSeek', warning: null };

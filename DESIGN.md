@@ -5,7 +5,7 @@
 
 ## Aesthetic direction
 
-Editorial clinical momentum: the visible progress and satisfying state changes of a learning app, the breathing room and typography of a premium journal, and the precision of a clinical reference.
+Editorial clinical momentum: the visible progress and satisfying state changes of a learning app, the breathing room and typography of a premium journal, and the precision of a clinical reference. Crisp neutral surfaces keep dense medicine content calm, while asymmetric composition, real package imagery, and purposeful color give each workflow a distinct identity.
 
 No mascot is used. Progress visualizes the learner's real mastery, streak, and due-review state; Renlyst does not invent XP, hearts, gems, or leaderboards.
 
@@ -27,15 +27,15 @@ Banned: Inter, Roboto, Arial, decorative serif body copy, all-caps sentences, an
 
 ## Color tokens
 
-The palette is warm stone plus three semantically constrained product colors:
+The palette is a crisp clinical neutral plus three semantically constrained product colors:
 
 | Token    | Light     | Dark      | Use                                     |
 | -------- | --------- | --------- | --------------------------------------- |
-| canvas   | `#F7F3EC` | `#101A24` | App background                          |
-| surface  | `#FCFAF6` | `#172432` | Raised/selected regions                 |
+| canvas   | `#F4F6F7` | `#101A24` | App background                          |
+| surface  | `#FBFCFC` | `#172432` | Raised/selected regions                 |
 | ink      | `#142B46` | `#EDF3F4` | Primary text                            |
-| mutedInk | `#536477` | `#A9B7C0` | AA-compliant secondary text             |
-| line     | `#D8D3C9` | `#2B3C49` | Dividers and boundaries                 |
+| mutedInk | `#4D6172` | `#A9B7C0` | AA-compliant secondary text             |
+| line     | `#D8DEE3` | `#2B3C49` | Dividers and boundaries                 |
 | coral    | `#BF4533` | `#E36B58` | Primary action and active progress      |
 | aqua     | `#17797E` | `#55B8B9` | Clinical information and verified state |
 | saffron  | `#C68A21` | `#E8B653` | Due, attention, and streak state        |
@@ -49,7 +49,7 @@ Banned: pure black/white, pharmacy green as brand color, purple/cyan gradients, 
 ## Shadows and shape
 
 - Primary surfaces use a 1 px tinted boundary and a low-opacity ink-blue diffusion shadow.
-- Radius scale: 10, 16, 24, and 32. Pills are reserved for filters, status, and compact actions.
+- Radius scale: 10, 14, 18, and 22. Pills are reserved for filters, status, and compact actions.
 - Cards exist only when a boundary improves comprehension. Rows and whitespace carry most library and clinical structure.
 - No nested cards deeper than one level.
 
@@ -97,6 +97,12 @@ Banned: pure black/white, pharmacy green as brand color, purple/cyan gradients, 
 - Loading, empty, error, offline, denied-permission, and destructive states are designed inline.
 
 ## Last updated
+
+2026-07-18: completed the image-everywhere pass so package evidence is visible before navigation across primary and secondary library, practice, encounter, import, relationship, and clinical surfaces. Compare, knowledge map, shelf quest, and refresh retain distinct compositions rather than repeating a generic card template; Arabic labels and controls wrap inside the iPhone 16 Pro Max viewport.
+
+2026-07-18: sharpened the visual system around crisp neutral surfaces, tighter radii, real package-image previews, sticky Library controls, profile topic destinations, directional screen reveals, tactile controls, and system-aware reduced motion. Primary clinical copy now uses structured emphasis instead of undifferentiated prose.
+
+2026-07-17: repaired shared pressable composition so icon, copy, and disclosure rows keep their intended horizontal mobile layout; verified the exact 440 × 956 iPhone 16 Pro Max viewport in English and Arabic with no horizontal overflow, alongside a narrower 430 × 932 stress viewport for data-heavy screens. Drug profiles now use semantic editorial emphasis for doses, timings, and safety language, while library, Today, search, and learning-path rows surface package-image thumbnails.
 
 2026-07-17: validated the dark/light and English/Arabic web fallbacks; decorative web icons are hidden from tab accessibility names while native platform symbols remain the iOS/Android source of truth.
 

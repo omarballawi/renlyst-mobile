@@ -1,6 +1,30 @@
 import type { AppLanguage } from './LocaleProvider';
 
 const arabicCopy: Record<string, string> = {
+  'Profiles in your next mix': 'الملفات في مجموعتك التالية',
+  'Real profiles. Real saved facts. Five short prompts.':
+    'ملفات حقيقية. حقائق محفوظة. خمسة أسئلة قصيرة.',
+  'Remove key': 'حذف المفتاح',
+  'Your answer is still here.': 'إجابتك ما زالت هنا.',
+  'Renlyst could not save this review. Retry without leaving the session.':
+    'تعذّر على رينليست حفظ هذه المراجعة. حاول مجدداً من دون مغادرة الجلسة.',
+  'Try saving answer again': 'حاول حفظ الإجابة مجدداً',
+  'The key will be deleted from protected device storage. Provider features can be configured again later.':
+    'سيُحذف المفتاح من التخزين المحمي على الجهاز. يمكنك إعداد ميزات المزوّد مجدداً لاحقاً.',
+  'The protected key could not be removed. Nothing else was changed.':
+    'تعذّر حذف المفتاح المحمي. لم يتغير أي شيء آخر.',
+  'NOT SAVED': 'غير محفوظ',
+  'Enter a replacement key': 'أدخل مفتاحاً بديلاً',
+  'Removing…': 'جارٍ الحذف…',
+  'DEVICE ONLY': 'على الجهاز فقط',
+  MANAGEMENT: 'التدبير',
+  'No mechanism is saved yet.': 'لم تُحفظ آلية العمل بعد.',
+  'Package preview · tap Brands & packages for every image':
+    'معاينة العبوة · اضغط «العلامات والعبوات» لعرض كل الصور',
+  'Protected settings did not open.': 'تعذّر فتح الإعدادات المحمية.',
+  'Renlyst could not read iOS protected storage. Your saved keys were not changed.':
+    'تعذّر على رينليست قراءة التخزين المحمي في iOS. لم تتغير مفاتيحك المحفوظة.',
+  'Try protected settings again': 'حاول فتح الإعدادات المحمية مجددًا',
   'RENLYST RECOVERY': 'استعادة رينليست',
   'Let’s get you back to learning.': 'لنُعدك إلى التعلّم.',
   'Renlyst hit an unexpected interface error. Your library, images, and private learning records were not included in the diagnostic report.':
@@ -77,6 +101,17 @@ const arabicCopy: Record<string, string> = {
     'خطوة مفيدة الآن أفضل من خطة دراسة مزدحمة لاحقاً.',
   Renlyst: 'رينليست',
   "TODAY'S FOCUS": 'تركيز اليوم',
+  'Add one drug': 'أضف دواءً واحداً',
+  'Start with a package you saw today.': 'ابدأ بعبوة رأيتها اليوم.',
+  'One five-question session. Nothing else.': 'جلسة واحدة من خمسة أسئلة. لا شيء آخر.',
+  'Practice weak drugs': 'راجع الأدوية الضعيفة',
+  'Strengthen the checks that need attention.': 'قوِّ نقاط المعرفة التي تحتاج إلى مراجعة.',
+  'Finish shift reflection': 'أكمل تأمل المناوبة',
+  'Capture what you learned before leaving.': 'سجّل ما تعلمته قبل المغادرة.',
+  "Add today's drug": 'أضف دواء اليوم',
+  'Keep your library connected to the shelf.': 'أبقِ مكتبتك مرتبطة بما تراه على الرف.',
+  'Your next useful review': 'مراجعتك المفيدة التالية',
+  'Continue building mastery': 'واصل بناء الإتقان',
   'Seven-day rhythm': 'إيقاع سبعة أيام',
   'Consistency without streak pressure.': 'استمرارية بلا ضغط السلسلة.',
   'Your knowledge path': 'مسار معرفتك',
@@ -922,6 +957,28 @@ const arabicCopy: Record<string, string> = {
   'One five-question session completes today’s mission.':
     'جلسة واحدة من خمسة أسئلة تُكمل مهمة اليوم.',
   'Capture shelf drugs': 'التقط أدوية الرف',
+  FIRST: 'الأول',
+  SECOND: 'الثاني',
+  'Choose profile': 'اختر ملفًا',
+  'Choose first profile': 'اختر الملف الأول',
+  'Choose second profile': 'اختر الملف الثاني',
+  'Not recorded': 'غير مسجل',
+  Cardiovascular: 'القلبي الوعائي',
+  Respiratory: 'التنفسي',
+  Endocrine: 'الغدد الصماء',
+  Musculoskeletal: 'العضلي الهيكلي',
+  Eye: 'العيون',
+  'Ear/Nose/Oropharynx': 'الأذن والأنف والبلعوم',
+  Gastrointestinal: 'الجهاز الهضمي',
+  Dermatology: 'الأمراض الجلدية',
+  Antibiotics: 'المضادات الحيوية',
+  OTC: 'أدوية دون وصفة',
+  'Vitamins/Supplements': 'الفيتامينات والمكملات',
+  'ACE inhibitor': 'مثبط الإنزيم المحول للأنجيوتنسين',
+  ARB: 'حاصر مستقبلات الأنجيوتنسين',
+  'Beta blocker': 'حاصر بيتا',
+  'Calcium channel blocker': 'حاصر قنوات الكالسيوم',
+  'Not found on your shelf yet': 'غير موجود على رفك بعد',
 };
 
 const normalizedArabicCopy = new Map(
@@ -935,6 +992,12 @@ function translateDynamicCopy(value: string): string | null {
   let match = /^(\d+) weak drugs need attention$/u.exec(value);
   if (match) return `${match[1]} أدوية ضعيفة تحتاج إلى اهتمام`;
 
+  match = /^Review (\d+) due drugs?$/u.exec(value);
+  if (match) return `راجع ${match[1]} من الأدوية المستحقة`;
+
+  match = /^(\d+) weak drugs? needs? a short return$/u.exec(value);
+  if (match) return `${match[1]} من الأدوية الضعيفة تحتاج إلى مراجعة قصيرة`;
+
   match = /^(.+): (\d+) questions$/u.exec(value);
   if (match) return `${translateCopy(match[1]!, 'ar')}: ${match[2]} أسئلة`;
 
@@ -944,6 +1007,8 @@ function translateDynamicCopy(value: string): string | null {
   if (match) return `إزالة صورة العبوة ${match[1]}`;
   match = /^Remove ingredient (\d+)$/u.exec(value);
   if (match) return `إزالة المادة الفعّالة ${match[1]}`;
+  match = /^Remove (.+?)(\?)?$/u.exec(value);
+  if (match) return `حذف ${translateCopy(match[1]!, 'ar')}${match[2] ? '؟' : ''}`;
 
   match = /^Open saved profile for (.+)$/u.exec(value);
   if (match) return `فتح الملف المحفوظ لـ ${match[1]}`;

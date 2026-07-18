@@ -51,6 +51,17 @@ describe('localized native primitives', () => {
     expect(JSON.stringify(screen.toJSON())).toContain('(اختياري)');
   });
 
+  it('translates adjacent primitive children as one dynamic sentence', async () => {
+    const screen = await render(
+      <AppText>
+        {'Review '}
+        {43}
+        {' due drugs'}
+      </AppText>,
+    );
+    expect(screen.getByText('راجع 43 من الأدوية المستحقة')).toBeTruthy();
+  });
+
   it('localizes input semantics while keeping Latin medicine names readable in RTL', async () => {
     const screen = await render(
       <AppTextInput accessibilityLabel="Search" placeholder="Search" value="Furosemide" />,

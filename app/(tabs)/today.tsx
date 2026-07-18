@@ -5,11 +5,20 @@ import { isMastered } from '@/domain/drugs/mastery';
 import { recommendFocus, type FocusAction } from '@/domain/learning/focusEngine';
 import { useLearningSummary } from '@/features/learning/queries';
 import { DrugRow } from '@/features/library/DrugRow';
-import { useDrugList, useLibrarySummary } from '@/features/library/queries';
+import { useDrugList, useLibrarySummary, usePrimaryImageUris } from '@/features/library/queries';
 import { LearningPath } from '@/features/today/LearningPath';
 import { useTrainingDashboard } from '@/features/training/queries';
 import { useLocale } from '@/localization/LocaleProvider';
-import { AppText, EmptyState, Icon, PageHeader, PrimaryButton, Screen } from '@/ui/components';
+import {
+  AppText,
+  DrugThumbnail,
+  EmptyState,
+  Icon,
+  MotionReveal,
+  PageHeader,
+  PrimaryButton,
+  Screen,
+} from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 const focusButtons: Record<FocusAction, { label: string; route: string }> = {
@@ -22,16 +31,18 @@ const focusButtons: Record<FocusAction, { label: string; route: string }> = {
 export default function TodayScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { t } = useLocale();
+  const { language, t } = useLocale();
   const summary = useLibrarySummary();
   const focus = useDrugList({ scope: 'needsAttention', sort: 'due', limit: 4 });
   const recent = useDrugList({ scope: 'all', sort: 'recent' });
+  const images = usePrimaryImageUris();
   const learning = useLearningSummary();
   const training = useTrainingDashboard();
   const refreshing =
     summary.isRefetching ||
     focus.isRefetching ||
     recent.isRefetching ||
+    images.isRefetching ||
     learning.isRefetching ||
     training.isRefetching;
   const refetch = () =>
@@ -39,6 +50,7 @@ export default function TodayScreen() {
       summary.refetch(),
       focus.refetch(),
       recent.refetch(),
+      images.refetch(),
       learning.refetch(),
       training.refetch(),
     ]);
@@ -48,6 +60,7 @@ export default function TodayScreen() {
     : null;
   const focusButton = recommendation ? focusButtons[recommendation.action] : null;
   const recentProfiles = recent.data?.slice(0, 3) ?? [];
+  const focusDrug = focus.data?.[0] ?? recentProfiles[0];
   const weakCount =
     recent.data?.filter(
       (drug) =>
@@ -76,51 +89,69 @@ export default function TodayScreen() {
 
         {hasProfiles ? (
           <>
-            <View style={[styles.focus, { backgroundColor: colors.ink }]}>
-              <View style={styles.focusEyebrow}>
-                <View style={[styles.focusIcon, { backgroundColor: colors.aquaSoft }]}>
-                  <Icon
-                    name={recommendation?.action === 'addDrug' ? 'camera' : 'practice'}
-                    color={colors.aqua}
-                    size={19}
-                  />
+            <MotionReveal direction="up">
+              <View style={[styles.focus, { backgroundColor: colors.ink }]}>
+                <View style={styles.focusLead}>
+                  <View style={styles.focusCopy}>
+                    <View style={styles.focusEyebrow}>
+                      <View style={[styles.focusIcon, { backgroundColor: colors.aquaSoft }]}>
+                        <Icon
+                          name={recommendation?.action === 'addDrug' ? 'camera' : 'practice'}
+                          color={colors.aqua}
+                          size={19}
+                        />
+                      </View>
+                      <AppText variant="label" color={colors.aqua}>
+                        {`TODAY'S FOCUS`}
+                      </AppText>
+                    </View>
+                    <AppText variant="title" color={colors.canvas} style={styles.focusTitle}>
+                      {recommendation?.title ?? 'Choose one useful next step'}
+                    </AppText>
+                    <AppText color={colors.canvas} style={styles.focusBody}>
+                      {recommendation?.subtitle ?? 'Your learning queue is being prepared.'}
+                    </AppText>
+                  </View>
+                  {focusDrug && recommendation?.action !== 'addDrug' ? (
+                    <DrugThumbnail
+                      id={focusDrug.id}
+                      name={focusDrug.scientificName || focusDrug.captureLabel}
+                      uri={images.data?.[focusDrug.id]}
+                      unknown={focusDrug.isUnknown}
+                      size={78}
+                    />
+                  ) : null}
                 </View>
-                <AppText variant="label" color={colors.aqua}>
-                  {`TODAY'S FOCUS`}
-                </AppText>
+                {focusButton ? (
+                  <PrimaryButton
+                    label={focusButton.label}
+                    icon={recommendation?.action === 'addDrug' ? 'camera' : 'practice'}
+                    onPress={() => router.push(focusButton.route)}
+                  />
+                ) : null}
               </View>
-              <AppText variant="title" color={colors.canvas} style={styles.focusTitle}>
-                {recommendation?.title ?? 'Choose one useful next step'}
-              </AppText>
-              <AppText color={colors.canvas} style={styles.focusBody}>
-                {recommendation?.subtitle ?? 'Your learning queue is being prepared.'}
-              </AppText>
-              {focusButton ? (
-                <PrimaryButton
-                  label={focusButton.label}
-                  icon={recommendation?.action === 'addDrug' ? 'camera' : 'practice'}
-                  onPress={() => router.push(focusButton.route)}
-                />
-              ) : null}
-            </View>
+            </MotionReveal>
 
             {showWeakReminder ? (
-              <View
-                accessibilityLabel={t(`${weakCount} weak drugs need attention`)}
-                style={[styles.reminder, { backgroundColor: colors.saffronSoft }]}
-              >
-                <View style={[styles.reminderIcon, { backgroundColor: colors.canvas }]}>
-                  <Icon name="warning" color={colors.saffron} size={20} />
+              <MotionReveal direction="up">
+                <View
+                  accessibilityLabel={t(`${weakCount} weak drugs need attention`)}
+                  style={[styles.reminder, { backgroundColor: colors.saffronSoft }]}
+                >
+                  <View style={[styles.reminderIcon, { backgroundColor: colors.canvas }]}>
+                    <Icon name="warning" color={colors.saffron} size={20} />
+                  </View>
+                  <View style={styles.reminderCopy}>
+                    <AppText variant="bodyStrong" color={colors.ink}>
+                      {weakCount} weak {weakCount === 1 ? 'drug needs' : 'drugs need'} a short
+                      return
+                    </AppText>
+                    <AppText variant="caption" color={colors.mutedInk}>
+                      Your reminder is on. A focused five is enough for today.
+                    </AppText>
+                  </View>
                 </View>
-                <View style={styles.reminderCopy}>
-                  <AppText variant="bodyStrong" color={colors.ink}>
-                    {weakCount} weak {weakCount === 1 ? 'drug needs' : 'drugs need'} a short return
-                  </AppText>
-                  <AppText variant="caption" color={colors.mutedInk}>
-                    Your reminder is on. A focused five is enough for today.
-                  </AppText>
-                </View>
-              </View>
+              </MotionReveal>
             ) : null}
 
             <View style={styles.sectionHeader}>
@@ -135,6 +166,9 @@ export default function TodayScreen() {
             >
               {(learning.data?.week ?? []).map((day) => {
                 const barHeight = Math.min(38, 7 + day.questionsAnswered * 2.4);
+                const dayLabel = new Intl.DateTimeFormat(language, { weekday: 'narrow' }).format(
+                  new Date(`${day.key}T12:00:00`),
+                );
                 return (
                   <View
                     key={day.key}
@@ -157,7 +191,7 @@ export default function TodayScreen() {
                       />
                     </View>
                     <AppText variant="label" color={day.isToday ? colors.coral : colors.mutedInk}>
-                      {day.label}
+                      {dayLabel}
                     </AppText>
                   </View>
                 );
@@ -172,6 +206,7 @@ export default function TodayScreen() {
             </View>
             <LearningPath
               drugs={focus.data ?? []}
+              imageUris={images.data ?? {}}
               onDrugPress={(id) => router.push(`/drug/${id}`)}
               onCapture={() => router.push('/capture')}
             />
@@ -223,6 +258,7 @@ export default function TodayScreen() {
                     <DrugRow
                       key={drug.id}
                       drug={drug}
+                      imageUri={images.data?.[drug.id]}
                       onPress={() => router.push(`/drug/${drug.id}`)}
                     />
                   ))}
@@ -257,6 +293,8 @@ const styles = StyleSheet.create({
     gap: spacing.xxl,
   },
   focus: { borderRadius: radii.xl, padding: spacing.xl, gap: spacing.md },
+  focusLead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  focusCopy: { flex: 1, flexShrink: 1, minWidth: 0, gap: spacing.sm },
   focusEyebrow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   focusIcon: {
     width: 38,
@@ -266,7 +304,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   focusTitle: { maxWidth: 360 },
-  focusBody: { opacity: 0.82, maxWidth: 430 },
+  focusBody: { maxWidth: 430 },
   sectionHeader: { gap: spacing.xxs },
   reminder: {
     borderRadius: radii.lg,

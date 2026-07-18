@@ -7,11 +7,14 @@ import {
   type PracticeMode,
 } from '@/domain/learning/practiceEngine';
 import { useLearningSummary } from '@/features/learning/queries';
-import { useLibrarySummary } from '@/features/library/queries';
+import { useDrugList, useLibrarySummary, usePrimaryImageUris } from '@/features/library/queries';
+import { useLocale } from '@/localization/LocaleProvider';
 import {
   AppText,
+  DrugThumbnail,
   EmptyState,
   Icon,
+  MotionReveal,
   PageHeader,
   PressableScale,
   PrimaryButton,
@@ -102,7 +105,10 @@ function LearningTool({
 export default function PracticeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useLocale();
   const summary = useLibrarySummary();
+  const focusDrugs = useDrugList({ sort: 'mastery', limit: 3 });
+  const images = usePrimaryImageUris();
   const learning = useLearningSummary();
   const hasProfiles = (summary.data?.profiles ?? 0) > 0;
   const profile = learning.data?.profile;
@@ -146,23 +152,49 @@ export default function PracticeScreen() {
                 </AppText>
               </View>
             </View>
-            <View style={[styles.smart, { backgroundColor: colors.ink }]}>
-              <AppText variant="label" color={colors.aqua}>
-                {learning.data?.today?.missionCompleted ? 'TODAY COMPLETE' : 'DAILY REFRESH'}
-              </AppText>
-              <AppText variant="title" color={colors.canvas}>
-                Let Renlyst choose the useful five.
-              </AppText>
-              <AppText color={colors.canvas} style={styles.smartBody}>
-                Due dates, incomplete mastery, safety, counseling, and your own package photos shape
-                the mix.
-              </AppText>
-              <PrimaryButton
-                label="Start Smart Session"
-                icon="practice"
-                onPress={() => router.push('/practice/session?mode=Smart%20Session')}
-              />
-            </View>
+            <MotionReveal direction="up">
+              <View style={[styles.smart, { backgroundColor: colors.ink }]}>
+                <AppText variant="label" color={colors.aqua}>
+                  {learning.data?.today?.missionCompleted ? 'TODAY COMPLETE' : 'DAILY REFRESH'}
+                </AppText>
+                <AppText variant="title" color={colors.canvas}>
+                  Let Renlyst choose the useful five.
+                </AppText>
+                <AppText color={colors.canvas} style={styles.smartBody}>
+                  Due dates, incomplete mastery, safety, counseling, and your own package photos
+                  shape the mix.
+                </AppText>
+                {(focusDrugs.data?.length ?? 0) > 0 ? (
+                  <View
+                    style={styles.smartProfiles}
+                    accessibilityLabel={t('Profiles in your next mix')}
+                  >
+                    {focusDrugs.data?.map((drug) => (
+                      <DrugThumbnail
+                        key={drug.id}
+                        id={drug.id}
+                        name={drug.scientificName || drug.captureLabel}
+                        uri={images.data?.[drug.id]}
+                        unknown={drug.isUnknown}
+                        size={52}
+                      />
+                    ))}
+                    <AppText
+                      variant="caption"
+                      color={colors.canvas}
+                      style={styles.smartProfileCopy}
+                    >
+                      Real profiles. Real saved facts. Five short prompts.
+                    </AppText>
+                  </View>
+                ) : null}
+                <PrimaryButton
+                  label="Start Smart Session"
+                  icon="practice"
+                  onPress={() => router.push('/practice/session?mode=Smart%20Session')}
+                />
+              </View>
+            </MotionReveal>
             <View style={styles.sectionTitle}>
               <AppText variant="heading" color={colors.ink}>
                 Learning tools
@@ -277,6 +309,8 @@ const styles = StyleSheet.create({
   progressDivider: { width: StyleSheet.hairlineWidth, height: 40 },
   smart: { padding: spacing.xl, borderRadius: radii.xl, gap: spacing.md },
   smartBody: { opacity: 0.82 },
+  smartProfiles: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  smartProfileCopy: { flex: 1, opacity: 0.82, marginStart: spacing.xs },
   sectionTitle: { gap: spacing.xxs },
   tools: { gap: spacing.sm },
   tool: {

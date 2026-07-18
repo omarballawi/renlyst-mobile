@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { ScrollView, SectionList, StyleSheet, View } from 'react-native';
 
 import type { LibraryScope, LibrarySort } from '@/data/repositories';
 import { DrugRow } from '@/features/library/DrugRow';
-import { useDrugList, useLibrarySummary } from '@/features/library/queries';
+import { useDrugList, useLibrarySummary, usePrimaryImageUris } from '@/features/library/queries';
 import { useLocale } from '@/localization/LocaleProvider';
 import {
   AppText,
@@ -65,19 +65,25 @@ export default function LibraryScreen() {
   const [sort, setSort] = useState<LibrarySort>('name');
   const drugs = useDrugList({ query, scope, sort });
   const summary = useLibrarySummary();
+  const images = usePrimaryImageUris();
 
   return (
     <Screen>
-      <FlatList
-        data={drugs.data ?? []}
+      <SectionList
+        sections={[{ key: 'profiles', data: drugs.data ?? [] }]}
         keyExtractor={(drug) => drug.id}
         renderItem={({ item }) => (
-          <DrugRow drug={item} onPress={() => router.push(`/drug/${item.id}`)} />
+          <DrugRow
+            drug={item}
+            imageUri={images.data?.[item.id]}
+            onPress={() => router.push(`/drug/${item.id}`)}
+          />
         )}
-        refreshing={drugs.isRefetching || summary.isRefetching}
-        onRefresh={() => void Promise.all([drugs.refetch(), summary.refetch()])}
+        refreshing={drugs.isRefetching || summary.isRefetching || images.isRefetching}
+        onRefresh={() => void Promise.all([drugs.refetch(), summary.refetch(), images.refetch()])}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
+        stickySectionHeadersEnabled
         ListHeaderComponent={
           <View style={styles.header}>
             <PageHeader
@@ -109,23 +115,6 @@ export default function LibraryScreen() {
               </View>
               <Icon name="chevron" color={colors.mutedInk} size={17} />
             </PressableScale>
-            <View
-              style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.line }]}
-            >
-              <Icon name="search" color={colors.mutedInk} size={20} />
-              <TextInput
-                testID="library-search"
-                accessibilityLabel="Search drug library"
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Ingredient, brand, Arabic, shelf…"
-                placeholderTextColor={colors.mutedInk}
-                autoCorrect={false}
-                returnKeyType="search"
-                clearButtonMode="while-editing"
-                style={[styles.searchInput, { color: colors.ink }]}
-              />
-            </View>
             <View style={styles.summary} accessibilityLabel={t('Library summary')}>
               <View>
                 <AppText variant="label" color={colors.mutedInk}>
@@ -152,39 +141,62 @@ export default function LibraryScreen() {
                 </AppText>
               </View>
             </View>
-            <View>
-              <AppText variant="label" color={colors.mutedInk} style={styles.groupLabel}>
-                SHOW
-              </AppText>
-              <View style={styles.chips}>
-                {scopes.map((item) => (
-                  <Chip
-                    key={item.key}
-                    label={item.label}
-                    selected={scope === item.key}
-                    onPress={() => setScope(item.key)}
-                  />
-                ))}
-              </View>
-            </View>
-            <View>
-              <AppText variant="label" color={colors.mutedInk} style={styles.groupLabel}>
-                SORT
-              </AppText>
-              <View style={styles.chips}>
-                {sorts.map((item) => (
-                  <Chip
-                    key={item.key}
-                    label={item.label}
-                    selected={sort === item.key}
-                    onPress={() => setSort(item.key)}
-                  />
-                ))}
-              </View>
-            </View>
-            <View style={[styles.divider, { backgroundColor: colors.line }]} />
           </View>
         }
+        renderSectionHeader={() => (
+          <View
+            style={[
+              styles.stickyControls,
+              { backgroundColor: colors.canvas, borderBottomColor: colors.line },
+            ]}
+          >
+            <View
+              style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.line }]}
+            >
+              <Icon name="search" color={colors.mutedInk} size={20} />
+              <TextInput
+                testID="library-search"
+                accessibilityLabel="Search drug library"
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Ingredient, brand, Arabic, shelf…"
+                placeholderTextColor={colors.mutedInk}
+                autoCorrect={false}
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+                style={[styles.searchInput, { color: colors.ink }]}
+              />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chips}
+            >
+              {scopes.map((item) => (
+                <Chip
+                  key={item.key}
+                  label={item.label}
+                  selected={scope === item.key}
+                  onPress={() => setScope(item.key)}
+                />
+              ))}
+            </ScrollView>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chips}
+            >
+              {sorts.map((item) => (
+                <Chip
+                  key={item.key}
+                  label={item.label}
+                  selected={sort === item.key}
+                  onPress={() => setSort(item.key)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
         ListEmptyComponent={
           <EmptyState
             icon={query || scope !== 'all' ? 'search' : 'library'}
@@ -206,7 +218,13 @@ export default function LibraryScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, flexGrow: 1 },
-  header: { gap: spacing.xl },
+  header: { gap: spacing.xl, paddingBottom: spacing.lg },
+  stickyControls: {
+    gap: spacing.xs,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   search: {
     minHeight: 52,
     borderWidth: 1,
@@ -235,8 +253,7 @@ const styles = StyleSheet.create({
   },
   toolsCopy: { flex: 1, gap: 2 },
   summary: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.xs },
-  groupLabel: { marginBottom: spacing.xs },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  chips: { flexDirection: 'row', gap: spacing.xs, paddingEnd: spacing.lg },
   chip: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
@@ -244,5 +261,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
   },
-  divider: { height: StyleSheet.hairlineWidth },
 });

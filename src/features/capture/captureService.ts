@@ -1,11 +1,12 @@
-import * as Crypto from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 import type { DrugBackup, DrugProductBackup } from '@/domain/backup';
 import { runExclusiveTransaction } from '@/data/database/transactions';
 import { DrugRepository, ProductRepository } from '@/data/repositories';
+import { sha256Hex } from '@/domain/shared/crypto';
 import { persistenceActions } from '@/features/capture/imagePipeline';
 
 type ImageOwnerType = 'drug' | 'product';
@@ -28,10 +29,22 @@ type PreparedCaptureImage = {
   created: boolean;
 };
 
-function digestHex(buffer: ArrayBuffer): Promise<string> {
-  return Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, buffer).then((digest) =>
-    Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(''),
-  );
+async function webImagePayload(uri: string): Promise<{ uri: string; bytes: Uint8Array }> {
+  const response = await fetch(uri);
+  if (!response.ok) throw new Error('The edited package image could not be read.');
+  const blob = await response.blob();
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const dataUri = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('The edited package image could not be encoded.'));
+    reader.onload = () =>
+      typeof reader.result === 'string'
+        ? resolve(reader.result)
+        : reject(new Error('The edited package image could not be encoded.'));
+    reader.readAsDataURL(blob);
+  });
+  URL.revokeObjectURL(uri);
+  return { uri: dataUri, bytes };
 }
 
 async function persistManipulatedImage(
@@ -48,9 +61,24 @@ async function persistManipulatedImage(
     compress: role === 'thumbnail' ? 0.72 : 0.82,
     format: SaveFormat.JPEG,
   });
+  if (Platform.OS === 'web') {
+    const payload = await webImagePayload(resized.uri);
+    const sha256 = await sha256Hex(payload.bytes);
+    return {
+      id: `${ownerType}:${ownerID}:${ordinal}:${role}`,
+      ordinal,
+      role,
+      uri: payload.uri,
+      sha256,
+      byteSize: payload.bytes.byteLength,
+      width: resized.width,
+      height: resized.height,
+      created: false,
+    };
+  }
   const temporary = new File(resized.uri);
   const bytes = await temporary.bytes();
-  const sha256 = await digestHex(bytes.buffer);
+  const sha256 = await sha256Hex(bytes);
   const directory = new Directory(Paths.document, 'renlyst', 'images', ownerType, ownerID);
   directory.create({ intermediates: true, idempotent: true });
   const destination = new File(directory, `${ordinal}-${role}-${sha256}.jpg`);
@@ -110,6 +138,7 @@ async function prepareImages(
 }
 
 function rollbackPreparedImages(images: readonly PreparedCaptureImage[]): void {
+  if (Platform.OS === 'web') return;
   for (const image of images) {
     if (!image.created) continue;
     const file = new File(image.uri);
@@ -222,11 +251,13 @@ export class CaptureService {
       throw error;
     }
 
-    const retained = new Set(images.map((image) => image.uri));
-    for (const row of oldRows) {
-      if (retained.has(row.uri)) continue;
-      const file = new File(row.uri);
-      if (file.exists) file.delete();
+    if (Platform.OS !== 'web') {
+      const retained = new Set(images.map((image) => image.uri));
+      for (const row of oldRows) {
+        if (retained.has(row.uri)) continue;
+        const file = new File(row.uri);
+        if (file.exists) file.delete();
+      }
     }
   }
 
@@ -248,11 +279,13 @@ export class CaptureService {
       throw error;
     }
 
-    const retained = new Set(images.map((image) => image.uri));
-    for (const row of oldRows) {
-      if (retained.has(row.uri)) continue;
-      const file = new File(row.uri);
-      if (file.exists) file.delete();
+    if (Platform.OS !== 'web') {
+      const retained = new Set(images.map((image) => image.uri));
+      for (const row of oldRows) {
+        if (retained.has(row.uri)) continue;
+        const file = new File(row.uri);
+        if (file.exists) file.delete();
+      }
     }
   }
 }

@@ -29,10 +29,13 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const mode = setting.data ?? 'system';
   const setMode = useCallback(
     (value: ThemeMode) => {
+      const previous = queryClient.getQueryData<ThemeMode>(themeSettingQueryKey) ?? mode;
       queryClient.setQueryData(themeSettingQueryKey, value);
-      void new SettingsRepository(db).set(settingKeys.themeMode, value);
+      void new SettingsRepository(db)
+        .set(settingKeys.themeMode, value)
+        .catch(() => queryClient.setQueryData(themeSettingQueryKey, previous));
     },
-    [db, queryClient],
+    [db, mode, queryClient],
   );
   const isDark = mode === 'system' ? systemScheme === 'dark' : mode === 'dark';
   const value = useMemo<ThemeContextValue>(

@@ -3,8 +3,8 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import type { DrugBackup } from '@/domain/backup';
-import { useDrugList } from '@/features/library/queries';
-import { AppText, EmptyState, Icon, PressableScale, Screen } from '@/ui/components';
+import { useDrugList, usePrimaryImageUris } from '@/features/library/queries';
+import { AppText, DrugThumbnail, EmptyState, Icon, PressableScale, Screen } from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 function CompareRow({ label, first, second }: { label: string; first: string; second: string }) {
@@ -31,6 +31,7 @@ export default function CompareDrugsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const drugs = useDrugList({ scope: 'all', sort: 'name' });
+  const primaryImages = usePrimaryImageUris();
   const [firstID, setFirstID] = useState<string | null>(null);
   const [secondID, setSecondID] = useState<string | null>(null);
   const [slot, setSlot] = useState<'first' | 'second'>('first');
@@ -91,9 +92,25 @@ export default function CompareDrugsScreen() {
                 <AppText variant="label" color={active ? colors.coral : colors.mutedInk}>
                   {item.toLocaleUpperCase()}
                 </AppText>
-                <AppText variant="bodyStrong" color={selected ? colors.ink : colors.mutedInk}>
-                  {selected?.scientificName || 'Choose profile'}
-                </AppText>
+                <View style={styles.slotSelection}>
+                  {selected ? (
+                    <DrugThumbnail
+                      id={selected.id}
+                      name={selected.scientificName || selected.captureLabel}
+                      uri={primaryImages.data?.[selected.id]}
+                      size={42}
+                      unknown={selected.isUnknown}
+                    />
+                  ) : null}
+                  <AppText
+                    variant="bodyStrong"
+                    color={selected ? colors.ink : colors.mutedInk}
+                    numberOfLines={2}
+                    style={styles.slotName}
+                  >
+                    {selected?.scientificName || selected?.captureLabel || 'Choose profile'}
+                  </AppText>
+                </View>
               </PressableScale>
             );
           })}
@@ -107,12 +124,20 @@ export default function CompareDrugsScreen() {
             ]}
           >
             <View style={styles.names}>
-              <AppText variant="heading" color={colors.ink} style={styles.compareValue}>
-                {first.scientificName}
-              </AppText>
-              <AppText variant="heading" color={colors.ink} style={styles.compareValue}>
-                {second.scientificName}
-              </AppText>
+              {[first, second].map((drug) => (
+                <View key={drug.id} style={styles.compareName}>
+                  <DrugThumbnail
+                    id={drug.id}
+                    name={drug.scientificName || drug.captureLabel}
+                    uri={primaryImages.data?.[drug.id]}
+                    size={50}
+                    unknown={drug.isUnknown}
+                  />
+                  <AppText variant="bodyStrong" color={colors.ink} numberOfLines={2}>
+                    {drug.scientificName || drug.captureLabel}
+                  </AppText>
+                </View>
+              ))}
             </View>
             <CompareRow
               label="Active ingredients"
@@ -149,6 +174,13 @@ export default function CompareDrugsScreen() {
                 onPress={() => choose(drug)}
                 style={[styles.drug, { borderBottomColor: colors.line }]}
               >
+                <DrugThumbnail
+                  id={drug.id}
+                  name={drug.scientificName || drug.captureLabel}
+                  uri={primaryImages.data?.[drug.id]}
+                  size={44}
+                  unknown={drug.isUnknown}
+                />
                 <View style={styles.drugCopy}>
                   <AppText variant="bodyStrong" color={colors.ink}>
                     {drug.scientificName || drug.captureLabel}
@@ -194,8 +226,11 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
   },
+  slotSelection: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  slotName: { flex: 1, flexShrink: 1, minWidth: 0 },
   comparison: { borderWidth: 1, borderRadius: radii.lg, padding: spacing.md },
   names: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
+  compareName: { flex: 1, minWidth: 0, gap: spacing.xs },
   compareRow: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: spacing.md,
@@ -212,6 +247,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  drugCopy: { flex: 1, gap: 2 },
+  drugCopy: { flex: 1, flexShrink: 1, minWidth: 0, gap: 2 },
 });

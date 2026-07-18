@@ -9,3 +9,32 @@ name: Practice always opens as a five-question session
     visible: 'Question 1 of 5.*'
     timeout: 20000
 - assertVisible: 'Close practice session'
+- tapOn: 'Your answer'
+- inputText: 'Furosemide'
+- tapOn: 'Check answer'
+- extendedWaitUntil:
+    visible: 'Next question'
+    timeout: 10000
+- doubleTapOn: 'Next question'
+- assertVisible: 'Question 2 of 5.*'
+- tapOn: 'Reveal saved answer'
+- tapOn: 'Correct'
+- tapOn: 'Next question'
+- assertVisible: 'Question 3 of 5.*'
+- tapOn: 'Your answer'
+- inputText: 'Lasix'
+- tapOn: 'Check answer'
+- tapOn: 'Next question'
+- assertVisible: 'Question 4 of 5.*'
+- tapOn: 'Your answer'
+- inputText: 'Furosemide'
+- tapOn: 'Check answer'
+- tapOn: 'Next question'
+- assertVisible: 'Question 5 of 5.*'
+- tapOn: 'Reveal saved answer'
+- tapOn: 'Correct'
+- tapOn: 'Finish session'
+- extendedWaitUntil:
+    visible: 'Five complete.'
+    timeout: 10000
+- assertVisible: 'Back to Practice'

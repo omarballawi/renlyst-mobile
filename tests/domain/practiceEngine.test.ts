@@ -131,4 +131,97 @@ describe('practice generation parity', () => {
       ).toBe(true);
     }
   });
+
+  it('keeps Smart Session grounded, concise, and varied', () => {
+    const questions = generatePracticeQuestions({
+      mode: 'Smart Session',
+      drugs,
+      imageUris: { '1': 'file:///furosemide.jpg' },
+    });
+
+    expect(questions).toHaveLength(5);
+    expect(new Set(questions.map((question) => question.questionType)).size).toBeGreaterThan(2);
+    expect(new Set(questions.map((question) => question.drugID)).size).toBeGreaterThan(2);
+    expect(
+      questions.every(
+        (question) =>
+          question.prompt.split(/\s+/u).length <= 18 &&
+          question.prompt.length <= 120 &&
+          question.correctAnswer.length <= 160 &&
+          question.explanation.length <= 240 &&
+          !/No (verified|trade name|counseling point)/iu.test(question.correctAnswer),
+      ),
+    ).toBe(true);
+    expect(questions.filter((question) => question.imageUri !== null).length).toBeLessThanOrEqual(
+      1,
+    );
+    expect(questions.every((question) => question.difficulty !== 'Challenge')).toBe(true);
+  });
+
+  it('uses distinct profiles before repeating the only supported fact type', () => {
+    const useOnly = Array.from({ length: 5 }, (_, index) =>
+      makeDrug({
+        id: `use-only-${index}`,
+        scientificName: `Medicine ${index + 1}`,
+        tradeNames: [],
+        drugClass: '',
+        indications: [`Useful indication ${index + 1}`],
+        warnings: [],
+        contraindications: [],
+        seriousSideEffects: [],
+        counselingSentence: '',
+        howToTake: '',
+        foodInstruction: '',
+      }),
+    );
+
+    const questions = generatePracticeQuestions({ mode: 'Smart Session', drugs: useOnly });
+
+    expect(questions).toHaveLength(5);
+    expect(new Set(questions.map((question) => question.drugID)).size).toBe(5);
+    expect(questions.every((question) => question.questionType === 'Use')).toBe(true);
+  });
+
+  it('does not generate filler questions from empty profile fields', () => {
+    const sparse = [
+      makeDrug({
+        id: 'sparse',
+        scientificName: 'Example ingredient',
+        tradeNames: [],
+        drugClass: '',
+        indications: [],
+        warnings: [],
+        contraindications: [],
+        seriousSideEffects: [],
+        counselingSentence: '',
+        howToTake: '',
+        foodInstruction: '',
+      }),
+    ];
+    expect(generatePracticeQuestions({ mode: 'Smart Session', drugs: sparse })).toEqual([]);
+    expect(generatePracticeQuestions({ mode: 'Drug → Warning', drugs: sparse })).toEqual([]);
+    expect(generatePracticeQuestions({ mode: 'Counseling', drugs: sparse })).toEqual([]);
+  });
+
+  it('rejects long source fragments and administrative reference text', () => {
+    const noisy = [
+      makeDrug({
+        id: 'noisy',
+        scientificName: 'Noisy medicine',
+        tradeNames: [],
+        drugClass: '',
+        indications: [
+          'See Clinical Pharmacology section 12.3 for a long administrative paragraph that does not make a useful recall target.',
+        ],
+        warnings: ['No information is available. See package insert references.'],
+        contraindications: [],
+        seriousSideEffects: [],
+        counselingSentence: '',
+        howToTake: '',
+        foodInstruction: '',
+      }),
+    ];
+
+    expect(generatePracticeQuestions({ mode: 'Smart Session', drugs: noisy })).toEqual([]);
+  });
 });

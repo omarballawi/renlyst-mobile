@@ -12,14 +12,22 @@ import {
   SettingsRepository,
   type ProviderConfiguration,
 } from '@/data/repositories';
-import { useDrugList } from '@/features/library/queries';
+import { useDrugList, usePrimaryImageUris } from '@/features/library/queries';
 import {
   practiceQueryKeys,
   useCachedPracticePack,
   usePracticeRepository,
 } from '@/features/practice/queries';
 import { generateDeepSeekPracticePack } from '@/services/providers/providerClients';
-import { AppText, EmptyState, Icon, PressableScale, PrimaryButton, Screen } from '@/ui/components';
+import {
+  AppText,
+  DrugThumbnail,
+  EmptyState,
+  Icon,
+  PressableScale,
+  PrimaryButton,
+  Screen,
+} from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 export default function CachedPracticePackScreen() {
@@ -30,6 +38,7 @@ export default function CachedPracticePackScreen() {
   const repository = usePracticeRepository();
   const pack = useCachedPracticePack();
   const drugs = useDrugList({ scope: 'all', sort: 'mastery' });
+  const primaryImages = usePrimaryImageUris();
   const [providerMessage, setProviderMessage] = useState<string | null>(null);
 
   const refresh = useMutation({
@@ -109,10 +118,22 @@ export default function CachedPracticePackScreen() {
                   key={question.id}
                   style={[styles.question, { borderBottomColor: colors.line }]}
                 >
-                  <AppText variant="label" color={colors.aqua}>
-                    {index + 1} · {question.difficulty.toLocaleUpperCase()}
-                  </AppText>
-                  <AppText color={colors.ink}>{question.prompt}</AppText>
+                  <DrugThumbnail
+                    id={question.drugID ?? question.id}
+                    name={question.drugName}
+                    uri={
+                      question.imageUri ||
+                      (question.drugID ? primaryImages.data?.[question.drugID] : null)
+                    }
+                    size={44}
+                    unknown={!question.drugID}
+                  />
+                  <View style={styles.questionCopy}>
+                    <AppText variant="label" color={colors.aqua}>
+                      {index + 1} · {question.difficulty.toLocaleUpperCase()}
+                    </AppText>
+                    <AppText color={colors.ink}>{question.prompt}</AppText>
+                  </View>
                 </View>
               ))}
             </View>
@@ -193,7 +214,10 @@ const styles = StyleSheet.create({
   question: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: spacing.md,
-    gap: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
+  questionCopy: { flex: 1, flexShrink: 1, minWidth: 0, gap: spacing.xs },
   error: { padding: spacing.md, borderRadius: radii.md },
 });

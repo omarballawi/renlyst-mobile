@@ -77,10 +77,11 @@ export function answerMatches(question: PracticeQuestion, response: string): boo
   return question.acceptedAnswers.some((answer) => normalized(answer) === value);
 }
 
-function difficulty(index: number): QuestionDifficulty {
-  if (index < 2) return 'Foundation';
-  if (index < 4) return 'Apply';
-  return 'Challenge';
+function difficultyForMode(mode: PracticeMode): QuestionDifficulty {
+  if (mode === 'Drug → Warning' || mode === 'Counseling' || mode === 'Case Practice') {
+    return 'Apply';
+  }
+  return 'Foundation';
 }
 
 function displayName(drug: DrugBackup): string {
@@ -88,7 +89,142 @@ function displayName(drug: DrugBackup): string {
 }
 
 function firstTradeName(drug: DrugBackup): string {
-  return drug.tradeNames.find((name) => name.trim()) ?? 'No trade name saved';
+  return drug.tradeNames.find((name) => name.trim())?.trim() ?? '';
+}
+
+const MAX_RECALL_CHARACTERS = 160;
+const lowValueFactPattern =
+  /\b(?:see (?:section|clinical pharmacology)|references?|no information is available|data (?:are|is) unavailable|package insert)\b/iu;
+
+function shortFactCandidates(value: string): string[] {
+  const normalized = value.replace(/\s+/gu, ' ').trim();
+  if (!normalized || lowValueFactPattern.test(normalized)) return [];
+  const sentences = normalized.match(/[^.!?]+[.!?]?/gu)?.map((item) => item.trim()) ?? [];
+  return [normalized, ...sentences].filter(
+    (item, index, all) =>
+      item.length > 0 &&
+      item.length <= MAX_RECALL_CHARACTERS &&
+      all.findIndex((candidate) => candidate === item) === index,
+  );
+}
+
+function conciseFact(values: readonly string[]): string {
+  for (const value of values) {
+    const candidate = shortFactCandidates(value)[0];
+    if (candidate) return candidate;
+  }
+  return '';
+}
+
+function counselingFact(drug: DrugBackup): string {
+  return conciseFact([drug.counselingSentence, drug.howToTake, drug.foodInstruction]);
+}
+
+function warningFact(drug: DrugBackup): string {
+  return conciseFact([...drug.warnings, ...drug.contraindications, ...drug.seriousSideEffects]);
+}
+
+function supportsQuestionMode(
+  mode: PracticeMode,
+  drug: DrugBackup,
+  imageUris: Readonly<Record<string, string>>,
+): boolean {
+  if (mode === 'Scientific → Trade' || mode === 'Trade → Scientific') {
+    return Boolean(drug.scientificName.trim() && firstTradeName(drug));
+  }
+  if (mode === 'Class → Examples') return Boolean(drug.drugClass.trim());
+  if (mode === 'Drug → Use') return Boolean(conciseFact(drug.indications));
+  if (mode === 'Drug → Warning') return Boolean(warningFact(drug));
+  if (mode === 'Image Quiz') return Boolean(imageUris[drug.id]);
+  if (mode === 'Counseling') return Boolean(counselingFact(drug));
+  return true;
+}
+
+const smartModeRotation: readonly PracticeMode[] = [
+  'Trade → Scientific',
+  'Drug → Use',
+  'Drug → Warning',
+  'Counseling',
+  'Image Quiz',
+  'Class → Examples',
+  'Scientific → Trade',
+];
+
+function weakModeFor(
+  drug: DrugBackup,
+  imageUris: Readonly<Record<string, string>>,
+): PracticeMode | null {
+  const priorities: readonly [boolean, PracticeMode][] = [
+    [!drug.masteryScientificName, 'Trade → Scientific'],
+    [!drug.masteryTradeName, 'Scientific → Trade'],
+    [!drug.masteryClass, 'Class → Examples'],
+    [!drug.masteryUse, 'Drug → Use'],
+    [!drug.masteryWarning, 'Drug → Warning'],
+    [!drug.masteryCounseling, 'Counseling'],
+    [Boolean(imageUris[drug.id]), 'Image Quiz'],
+  ];
+  return (
+    priorities.find(
+      ([needed, mode]) => needed && supportsQuestionMode(mode, drug, imageUris),
+    )?.[1] ??
+    smartModeRotation.find((mode) => supportsQuestionMode(mode, drug, imageUris)) ??
+    null
+  );
+}
+
+function smartQuestionPlan(
+  drugs: readonly DrugBackup[],
+  imageUris: Readonly<Record<string, string>>,
+): { drug: DrugBackup; mode: PracticeMode }[] {
+  const plan: { drug: DrugBackup; mode: PracticeMode }[] = [];
+  const usedPairs = new Set<string>();
+  let drugCursor = 0;
+
+  const canUseMode = (mode: PracticeMode) =>
+    mode !== 'Image Quiz' || !plan.some((item) => item.mode === 'Image Quiz');
+
+  for (const mode of smartModeRotation) {
+    const candidates: { drug: DrugBackup; index: number }[] = Array.from(
+      { length: drugs.length },
+      (_, offset) => {
+        const index = (drugCursor + offset) % drugs.length;
+        return { drug: drugs[index]!, index };
+      },
+    );
+    const candidate = candidates.find(
+      (item) =>
+        canUseMode(mode) &&
+        supportsQuestionMode(mode, item.drug, imageUris) &&
+        !usedPairs.has(`${item.drug.id}:${mode}`),
+    );
+    if (!candidate) continue;
+    plan.push({ drug: candidate.drug, mode });
+    usedPairs.add(`${candidate.drug.id}:${mode}`);
+    drugCursor = (candidate.index + 1) % drugs.length;
+    if (plan.length === PRACTICE_QUESTION_COUNT) break;
+  }
+
+  if (plan.length < PRACTICE_QUESTION_COUNT) {
+    for (let offset = 0; offset < drugs.length; offset += 1) {
+      const drug = drugs[(drugCursor + offset) % drugs.length]!;
+      for (const mode of smartModeRotation) {
+        const pair = `${drug.id}:${mode}`;
+        if (
+          !canUseMode(mode) ||
+          !supportsQuestionMode(mode, drug, imageUris) ||
+          usedPairs.has(pair)
+        )
+          continue;
+        plan.push({ drug, mode });
+        usedPairs.add(pair);
+        if (plan.length === PRACTICE_QUESTION_COUNT) break;
+      }
+      if (plan.length === PRACTICE_QUESTION_COUNT) break;
+    }
+  }
+
+  if (plan.length === 0) return [];
+  return Array.from({ length: PRACTICE_QUESTION_COUNT }, (_, index) => plan[index % plan.length]!);
 }
 
 function uniqueShortChoices(
@@ -129,21 +265,7 @@ function questionFor(
 ): PracticeQuestion {
   let mode = requestedMode;
   if (requestedMode === 'Weak Drugs') {
-    if (!drug.masteryScientificName) mode = 'Trade → Scientific';
-    else if (!drug.masteryTradeName) mode = 'Scientific → Trade';
-    else if (!drug.masteryClass && drug.drugClass.trim()) mode = 'Class → Examples';
-    else if (!drug.masteryUse) mode = 'Drug → Use';
-    else if (!drug.masteryWarning) mode = 'Drug → Warning';
-    else mode = 'Counseling';
-  } else if (
-    requestedMode === 'Smart Session' ||
-    requestedMode === 'Due Review' ||
-    requestedMode === 'System Practice'
-  ) {
-    const rotation: PracticeMode[] = imageUris[drug.id]
-      ? ['Trade → Scientific', 'Image Quiz', 'Drug → Use', 'Drug → Warning', 'Counseling']
-      : ['Trade → Scientific', 'Class → Examples', 'Drug → Use', 'Drug → Warning', 'Counseling'];
-    mode = rotation[index % rotation.length] ?? 'Drug → Use';
+    mode = weakModeFor(drug, imageUris) ?? 'Drug → Use';
   }
 
   const base = {
@@ -152,14 +274,14 @@ function questionFor(
     drugName: displayName(drug),
     imageUri: null,
     caseID: null,
-    difficulty: difficulty(index),
+    difficulty: difficultyForMode(mode),
   } as const;
 
   if (mode === 'Scientific → Trade') {
     const answer = firstTradeName(drug);
     return {
       ...base,
-      prompt: `Name one brand of ${drug.scientificName}.`,
+      prompt: `Name one saved brand for ${drug.scientificName}.`,
       correctAnswer: answer,
       acceptedAnswers: drug.tradeNames.length ? drug.tradeNames : [answer],
       choices: [],
@@ -187,11 +309,11 @@ function questionFor(
   if (mode === 'Class → Examples') {
     return {
       ...base,
-      prompt: `Recall one drug in the ${drug.drugClass || 'saved'} class.`,
+      prompt: `Name one drug in the ${drug.drugClass} class.`,
       correctAnswer: displayName(drug),
       acceptedAnswers: [displayName(drug)],
       choices: [],
-      explanation: `${displayName(drug)} is saved as ${drug.drugClass || 'an unclassified profile'}.`,
+      explanation: `${displayName(drug)} is saved in the ${drug.drugClass} class.`,
       questionType: 'Class',
       interaction: 'recall',
       learningObjective: 'Retrieve a class example',
@@ -199,8 +321,7 @@ function questionFor(
     };
   }
   if (mode === 'Drug → Use') {
-    const answer =
-      drug.indications.find((value) => value.trim()) ?? 'No verified indication is saved yet.';
+    const answer = conciseFact(drug.indications);
     const choices = uniqueShortChoices(
       answer,
       all.flatMap((item) => item.indications.slice(0, 1)),
@@ -220,13 +341,10 @@ function questionFor(
     };
   }
   if (mode === 'Drug → Warning') {
-    const answer =
-      drug.warnings.find((value) => value.trim()) ??
-      drug.contraindications.find((value) => value.trim()) ??
-      'No verified warning is saved yet.';
+    const answer = warningFact(drug);
     return {
       ...base,
-      prompt: `Before supplying ${displayName(drug)}, what key warning must you recall?`,
+      prompt: `What key warning matters most for ${displayName(drug)}?`,
       correctAnswer: answer,
       acceptedAnswers: [answer],
       choices: [],
@@ -252,14 +370,10 @@ function questionFor(
       sourceField: 'packageImages',
     };
   }
-  const answer =
-    drug.counselingSentence.trim() ||
-    drug.howToTake.trim() ||
-    drug.foodInstruction.trim() ||
-    'No counseling point is saved yet.';
+  const answer = counselingFact(drug);
   return {
     ...base,
-    prompt: `Counsel a patient taking ${displayName(drug)}. What is the key point?`,
+    prompt: `What counseling point matters most for ${displayName(drug)}?`,
     correctAnswer: answer,
     acceptedAnswers: [answer],
     choices: [],
@@ -318,7 +432,7 @@ function caseQuestions(drugs: readonly DrugBackup[]): PracticeQuestion[] {
       interaction: 'recall',
       imageUri: null,
       caseID: item.id,
-      difficulty: difficulty(index),
+      difficulty: difficultyForMode('Case Practice'),
       learningObjective: 'Apply a saved drug fact to a short patient situation',
       sourceField: 'case',
     };
@@ -355,8 +469,12 @@ export function generatePracticeQuestions({
       (drug) => (dateFromLegacy(drug.nextReviewDate)?.valueOf() ?? Infinity) < tomorrow,
     );
   }
-  if (mode === 'Image Quiz') eligible = eligible.filter((drug) => Boolean(imageUris[drug.id]));
-  if (mode === 'Class → Examples') eligible = eligible.filter((drug) => drug.drugClass.trim());
+  if (!['Smart Session', 'Weak Drugs', 'Due Review', 'System Practice'].includes(mode)) {
+    eligible = eligible.filter((drug) => supportsQuestionMode(mode, drug, imageUris));
+  }
+  if (mode === 'Weak Drugs') {
+    eligible = eligible.filter((drug) => weakModeFor(drug, imageUris) !== null);
+  }
   if (eligible.length === 0) return [];
   eligible.sort(
     (first, second) =>
@@ -365,7 +483,13 @@ export function generatePracticeQuestions({
         (dateFromLegacy(second.nextReviewDate)?.valueOf() ?? Infinity) ||
       displayName(first).localeCompare(displayName(second)),
   );
-  return Array.from({ length: PRACTICE_QUESTION_COUNT }, (_, index) =>
-    questionFor(mode, eligible[index % eligible.length] ?? eligible[0]!, known, imageUris, index),
-  );
+  if (mode === 'Smart Session' || mode === 'Due Review' || mode === 'System Practice') {
+    return smartQuestionPlan(eligible, imageUris).map((item, index) =>
+      questionFor(item.mode, item.drug, known, imageUris, index),
+    );
+  }
+  return Array.from({ length: PRACTICE_QUESTION_COUNT }, (_, index) => {
+    const drug = eligible[index % eligible.length] ?? eligible[0]!;
+    return questionFor(mode, drug, known, imageUris, index);
+  });
 }

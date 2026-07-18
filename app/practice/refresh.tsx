@@ -2,13 +2,15 @@ import { useRouter } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useDailyRefresh } from '@/features/practice/queries';
-import { AppText, EmptyState, Icon, PressableScale, Screen } from '@/ui/components';
+import { usePrimaryImageUris } from '@/features/library/queries';
+import { AppText, DrugThumbnail, EmptyState, Icon, PressableScale, Screen } from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 export default function DailyRefreshScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const refresh = useDailyRefresh();
+  const primaryImages = usePrimaryImageUris();
   const data = refresh.data;
   const isEmpty = (data?.drugs.length ?? 0) === 0 && !data?.encounter && !data?.atomicNote;
 
@@ -60,11 +62,14 @@ export default function DailyRefreshScreen() {
                 { backgroundColor: colors.surface, borderColor: colors.line },
               ]}
             >
-              <View style={[styles.monogram, { backgroundColor: colors.aquaSoft }]}>
-                <AppText variant="label" color={colors.aqua}>
-                  {name.slice(0, 2).toLocaleUpperCase()}
-                </AppText>
-              </View>
+              <DrugThumbnail
+                id={drug.id}
+                name={name}
+                uri={primaryImages.data?.[drug.id]}
+                size={52}
+                unknown={drug.isUnknown}
+                accessibilityLabel={`${name} package preview`}
+              />
               <View style={styles.cardCopy}>
                 <AppText variant="bodyStrong" color={colors.ink}>
                   {name}
@@ -80,17 +85,29 @@ export default function DailyRefreshScreen() {
 
         {data?.encounter ? (
           <View style={[styles.note, { backgroundColor: colors.saffronSoft }]}>
-            <AppText variant="label" color={colors.saffron}>
-              RESURFACED SHIFT NOTE
-            </AppText>
-            <AppText variant="bodyStrong" color={colors.ink}>
-              {data.encounter.topic}
-            </AppText>
-            <AppText color={colors.ink} numberOfLines={5}>
-              {data.encounter.whatILearned ||
-                data.encounter.whatHappened ||
-                data.encounter.pharmacistNote}
-            </AppText>
+            <View style={styles.noteRow}>
+              {data.encounter.relatedDrugID ? (
+                <DrugThumbnail
+                  id={data.encounter.relatedDrugID}
+                  name={data.encounter.relatedDrugNameSnapshot || data.encounter.topic}
+                  uri={primaryImages.data?.[data.encounter.relatedDrugID]}
+                  size={46}
+                />
+              ) : null}
+              <View style={styles.noteCopy}>
+                <AppText variant="label" color={colors.saffron}>
+                  RESURFACED SHIFT NOTE
+                </AppText>
+                <AppText variant="bodyStrong" color={colors.ink}>
+                  {data.encounter.topic}
+                </AppText>
+                <AppText color={colors.ink} numberOfLines={5}>
+                  {data.encounter.whatILearned ||
+                    data.encounter.whatHappened ||
+                    data.encounter.pharmacistNote}
+                </AppText>
+              </View>
+            </View>
           </View>
         ) : null}
 
@@ -101,13 +118,23 @@ export default function DailyRefreshScreen() {
             onPress={() => router.push(`/drug/${data.atomicNote!.drugID}`)}
             style={[styles.note, { backgroundColor: colors.aquaSoft }]}
           >
-            <AppText variant="label" color={colors.aqua}>
-              FROM YOUR {data.atomicNote.kind.toLocaleUpperCase()}
-            </AppText>
-            <AppText color={colors.ink}>{data.atomicNote.text}</AppText>
-            <AppText variant="caption" color={colors.mutedInk}>
-              {data.atomicNote.drugName} · {data.atomicNote.linkedField}
-            </AppText>
+            <View style={styles.noteRow}>
+              <DrugThumbnail
+                id={data.atomicNote.drugID}
+                name={data.atomicNote.drugName}
+                uri={primaryImages.data?.[data.atomicNote.drugID]}
+                size={46}
+              />
+              <View style={styles.noteCopy}>
+                <AppText variant="label" color={colors.aqua}>
+                  FROM YOUR {data.atomicNote.kind.toLocaleUpperCase()}
+                </AppText>
+                <AppText color={colors.ink}>{data.atomicNote.text}</AppText>
+                <AppText variant="caption" color={colors.mutedInk}>
+                  {data.atomicNote.drugName} · {data.atomicNote.linkedField}
+                </AppText>
+              </View>
+            </View>
           </PressableScale>
         ) : null}
 
@@ -143,13 +170,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  monogram: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   cardCopy: { flex: 1, gap: 2 },
   note: { padding: spacing.lg, borderRadius: radii.lg, gap: spacing.xs },
+  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  noteCopy: { flex: 1, flexShrink: 1, minWidth: 0, gap: spacing.xs },
 });

@@ -18,22 +18,22 @@ export type ThemeColors = {
 };
 
 export const lightColors: ThemeColors = {
-  canvas: '#F7F3EC',
-  surface: '#FCFAF6',
-  surfaceStrong: '#EEE7DC',
+  canvas: '#F4F6F7',
+  surface: '#FBFCFC',
+  surfaceStrong: '#E8EDF0',
   ink: '#142B46',
-  mutedInk: '#536477',
-  line: '#D8D3C9',
+  mutedInk: '#4D6172',
+  line: '#D8DEE3',
   coral: '#BF4533',
   coralPressed: '#A83829',
-  coralText: '#FFF8F2',
+  coralText: '#FFF9F6',
   aqua: '#17797E',
-  aquaSoft: '#D7EBE8',
+  aquaSoft: '#D8ECEA',
   saffron: '#9B6712',
-  saffronSoft: '#F4E4BD',
+  saffronSoft: '#F4E5BF',
   success: '#237A54',
   danger: '#AA3945',
-  shadow: 'rgba(20, 43, 70, 0.12)',
+  shadow: 'rgba(20, 43, 70, 0.14)',
 };
 
 export const darkColors: ThemeColors = {
@@ -68,9 +68,9 @@ export const spacing = {
 
 export const radii = {
   sm: 10,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  md: 14,
+  lg: 18,
+  xl: 22,
   pill: 999,
 } as const;
 

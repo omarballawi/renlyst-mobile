@@ -27,9 +27,18 @@ const arabicPattern = /[\u0600-\u06ff]/u;
 
 export function AppText({ variant = 'body', color, style, children, ...props }: AppTextProps) {
   const { isRTL, language } = useLocale();
-  const translatedContent = Children.map(children, (child) =>
-    typeof child === 'string' ? translateCopy(child, language) : child,
-  );
+  const childArray = Children.toArray(children);
+  const primitiveCopy = childArray.every(
+    (child) => typeof child === 'string' || typeof child === 'number',
+  )
+    ? childArray.join('')
+    : null;
+  const translatedContent =
+    primitiveCopy === null
+      ? Children.map(children, (child) =>
+          typeof child === 'string' ? translateCopy(child, language) : child,
+        )
+      : translateCopy(primitiveCopy, language);
   const visibleText = Children.toArray(translatedContent)
     .filter(
       (child): child is string | number => typeof child === 'string' || typeof child === 'number',

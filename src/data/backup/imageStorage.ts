@@ -6,6 +6,7 @@ import {
   type EmbeddedBackupImage,
   type PharmaShiftBackup,
 } from '@/domain/backup';
+import { sha256Hex } from '@/domain/shared/crypto';
 
 export type StagedBackupImage = Omit<EmbeddedBackupImage, 'base64'> & {
   id: string;
@@ -25,10 +26,6 @@ export type StagedBackup = {
 export type PromotedBackupImage = Omit<StagedBackupImage, 'temporaryUri'> & {
   created: boolean;
 };
-
-function bytesToHex(buffer: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 
 function mimeTypeFor(bytes: Uint8Array): string {
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
@@ -64,8 +61,7 @@ export class BackupImageStorage {
         temporary.create({ intermediates: true, overwrite: true });
         temporary.write(embedded.base64, { encoding: 'base64' });
         const bytes = await temporary.bytes();
-        const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes);
-        const sha256 = bytesToHex(digest);
+        const sha256 = await sha256Hex(bytes);
         const mimeType = mimeTypeFor(bytes);
         const ownerDirectory = new Directory(
           Paths.document,
@@ -101,8 +97,7 @@ export class BackupImageStorage {
         const temporary = new File(image.temporaryUri);
         if (!temporary.exists) throw new Error(`A staged backup image is missing: ${image.id}`);
         const bytes = await temporary.bytes();
-        const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes);
-        if (bytesToHex(digest) !== image.sha256) {
+        if ((await sha256Hex(bytes)) !== image.sha256) {
           throw new Error(`A staged backup image failed its integrity check: ${image.id}`);
         }
         const destination = new File(image.finalUri);

@@ -3,18 +3,19 @@ import { StyleSheet, View } from 'react-native';
 import type { DrugBackup } from '@/domain/backup';
 import { masteryCount, requiredMasteryCount } from '@/domain/drugs/mastery';
 import { useLocale } from '@/localization/LocaleProvider';
-import { AppText, Icon, PressableScale } from '@/ui/components';
+import { AppText, DrugThumbnail, Icon, PressableScale } from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 type LearningPathProps = {
   drugs: readonly DrugBackup[];
+  imageUris?: Readonly<Record<string, string>>;
   onDrugPress(id: string): void;
   onCapture(): void;
 };
 
 const offsets = [0, 42, 12, 54, 20] as const;
 
-export function LearningPath({ drugs, onDrugPress, onCapture }: LearningPathProps) {
+export function LearningPath({ drugs, imageUris = {}, onDrugPress, onCapture }: LearningPathProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
   const nodes = drugs.slice(0, 4);
@@ -25,13 +26,14 @@ export function LearningPath({ drugs, onDrugPress, onCapture }: LearningPathProp
         const count = masteryCount(drug);
         const required = requiredMasteryCount(drug);
         const name = drug.scientificName || drug.captureLabel || 'Unknown medicine';
+        const imageUri = imageUris[drug.id];
         return (
           <PressableScale
             key={drug.id}
             accessibilityRole="button"
             accessibilityLabel={`${name}, ${count} of ${required} mastery checks`}
             onPress={() => onDrugPress(drug.id)}
-            style={[styles.nodeRow, { marginLeft: offsets[index] ?? 0 }]}
+            style={[styles.nodeRow, { paddingStart: offsets[index] ?? 0 }]}
           >
             <View
               style={[
@@ -42,7 +44,9 @@ export function LearningPath({ drugs, onDrugPress, onCapture }: LearningPathProp
                 },
               ]}
             >
-              {index === 0 ? (
+              {imageUri ? (
+                <DrugThumbnail id={drug.id} name={name} uri={imageUri} size={60} />
+              ) : index === 0 ? (
                 <Icon name="arrow" color={colors.coralText} size={21} />
               ) : (
                 <AppText variant="label" color={colors.ink}>
@@ -65,7 +69,7 @@ export function LearningPath({ drugs, onDrugPress, onCapture }: LearningPathProp
         accessibilityRole="button"
         accessibilityLabel="Capture the next medicine package"
         onPress={onCapture}
-        style={[styles.nodeRow, { marginLeft: offsets[nodes.length] ?? 0 }]}
+        style={[styles.nodeRow, { paddingStart: offsets[nodes.length] ?? 0 }]}
       >
         <View
           style={[
@@ -91,13 +95,20 @@ export function LearningPath({ drugs, onDrugPress, onCapture }: LearningPathProp
 
 const styles = StyleSheet.create({
   container: { position: 'relative', gap: spacing.sm, paddingVertical: spacing.xs },
-  rail: { position: 'absolute', left: 31, top: 36, bottom: 36, width: 2, borderRadius: radii.pill },
+  rail: {
+    position: 'absolute',
+    start: 31,
+    top: 36,
+    bottom: 36,
+    width: 2,
+    borderRadius: radii.pill,
+  },
   nodeRow: {
     minHeight: 68,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    maxWidth: '88%',
+    width: '100%',
   },
   node: {
     width: 62,
@@ -108,5 +119,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   openNode: { borderStyle: 'dashed', borderWidth: 2 },
-  nodeCopy: { flex: 1, gap: 1 },
+  nodeCopy: { flex: 1, flexShrink: 1, minWidth: 0, gap: 1 },
 });

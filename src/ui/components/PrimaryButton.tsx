@@ -35,7 +35,7 @@ export function PrimaryButton({
         styles.container,
         {
           backgroundColor: disabled ? colors.surfaceStrong : colors.coral,
-          boxShadow: disabled ? undefined : `0px 8px 18px ${colors.shadow}`,
+          boxShadow: disabled ? undefined : `0px 4px 8px ${colors.shadow}`,
         },
       ]}
     >

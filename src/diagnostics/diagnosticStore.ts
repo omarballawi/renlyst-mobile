@@ -1,4 +1,5 @@
 import { File, Paths } from 'expo-file-system';
+import { Platform } from 'react-native';
 
 import {
   appendCrashDiagnostic,
@@ -7,11 +8,20 @@ import {
   type DiagnosticStorage,
 } from './diagnosticReport';
 
-const diagnosticFile = new File(Paths.document, 'renlyst-diagnostics-v1.json');
+const diagnosticFile =
+  Platform.OS === 'web' ? null : new File(Paths.document, 'renlyst-diagnostics-v1.json');
+let memoryDiagnostic: string | null = null;
 
 const fileStorage: DiagnosticStorage = {
-  read: () => (diagnosticFile.exists ? diagnosticFile.textSync() : null),
+  read: () => {
+    if (!diagnosticFile) return memoryDiagnostic;
+    return diagnosticFile.exists ? diagnosticFile.textSync() : null;
+  },
   write: (serialized) => {
+    if (!diagnosticFile) {
+      memoryDiagnostic = serialized;
+      return;
+    }
     if (!diagnosticFile.exists) {
       diagnosticFile.create({ intermediates: true });
     }

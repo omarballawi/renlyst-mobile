@@ -2,8 +2,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { readDoseRegimens } from '@/domain/clinical/doseCalculator';
-import { useDrug } from '@/features/library/queries';
-import { AppText, Icon, PressableScale, PrimaryButton, Screen } from '@/ui/components';
+import { useDrug, usePrimaryImageUris } from '@/features/library/queries';
+import {
+  AppText,
+  DrugThumbnail,
+  Icon,
+  PressableScale,
+  PrimaryButton,
+  Screen,
+} from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 export default function ImportCompleteScreen() {
@@ -11,6 +18,7 @@ export default function ImportCompleteScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const drug = useDrug(id);
+  const primaryImages = usePrimaryImageUris();
 
   if (drug.isLoading) {
     return (
@@ -41,9 +49,14 @@ export default function ImportCompleteScreen() {
   return (
     <Screen safeBottom>
       <View style={styles.content}>
-        <View style={[styles.seal, { backgroundColor: colors.aquaSoft }]}>
-          <Icon name="check" color={colors.aqua} size={30} />
-        </View>
+        <DrugThumbnail
+          id={profile.id}
+          name={profile.scientificName || profile.captureLabel}
+          uri={primaryImages.data?.[profile.id]}
+          size={68}
+          unknown={profile.isUnknown}
+          accessibilityLabel={`${profile.scientificName || profile.captureLabel} package preview`}
+        />
         <View style={styles.copy}>
           <AppText variant="label" color={colors.aqua}>
             CARD SAVED
@@ -118,13 +131,6 @@ export default function ImportCompleteScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   content: { flex: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xxl },
-  seal: {
-    width: 68,
-    height: 68,
-    borderRadius: radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   copy: { gap: spacing.sm },
   summary: {
     minHeight: 104,

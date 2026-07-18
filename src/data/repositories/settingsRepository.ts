@@ -67,13 +67,67 @@ const credentialKeys = {
 
 export type ProviderCredential = keyof typeof credentialKeys;
 
+const credentialOperationTails: Record<ProviderCredential, Promise<void>> = {
+  openRouter: Promise.resolve(),
+  deepSeek: Promise.resolve(),
+  altibbi: Promise.resolve(),
+};
+
+function enqueueCredentialOperation<T>(
+  provider: ProviderCredential,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const run = credentialOperationTails[provider].then(operation, operation);
+  credentialOperationTails[provider] = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
+export type ProviderCredentialValues = Record<ProviderCredential, string>;
+
 export const ProviderCredentialStore = {
   async get(provider: ProviderCredential): Promise<string> {
-    return (await SecureStore.getItemAsync(credentialKeys[provider])) ?? '';
+    return enqueueCredentialOperation(
+      provider,
+      async () => (await SecureStore.getItemAsync(credentialKeys[provider])) ?? '',
+    );
   },
   async set(provider: ProviderCredential, value: string): Promise<void> {
-    const trimmed = normalizeCredential(value);
-    if (trimmed) await SecureStore.setItemAsync(credentialKeys[provider], trimmed);
-    else await SecureStore.deleteItemAsync(credentialKeys[provider]);
+    return enqueueCredentialOperation(provider, async () => {
+      const trimmed = normalizeCredential(value);
+      if (trimmed) await SecureStore.setItemAsync(credentialKeys[provider], trimmed);
+      else await SecureStore.deleteItemAsync(credentialKeys[provider]);
+    });
+  },
+  async has(provider: ProviderCredential): Promise<boolean> {
+    return Boolean(await this.get(provider));
+  },
+  async getMany(): Promise<ProviderCredentialValues> {
+    return {
+      openRouter: await this.get('openRouter'),
+      deepSeek: await this.get('deepSeek'),
+      altibbi: await this.get('altibbi'),
+    };
+  },
+  async replaceMany(values: Partial<ProviderCredentialValues>): Promise<void> {
+    const providers = (Object.keys(values) as ProviderCredential[]).filter(
+      (provider) => values[provider] !== undefined,
+    );
+    const previous: Partial<ProviderCredentialValues> = {};
+    for (const provider of providers) previous[provider] = await this.get(provider);
+    try {
+      for (const provider of providers) await this.set(provider, values[provider] ?? '');
+    } catch (error) {
+      for (const provider of providers) {
+        try {
+          await this.set(provider, previous[provider] ?? '');
+        } catch {
+          // Preserve the original failure; a later explicit save can retry a failed rollback.
+        }
+      }
+      throw error;
+    }
   },
 };

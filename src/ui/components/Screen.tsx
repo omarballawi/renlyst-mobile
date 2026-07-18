@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react';
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { StyleSheet, type ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 
 import { useTheme } from '@/ui/theme';
 import { useLocale } from '@/localization/LocaleProvider';
@@ -15,9 +16,13 @@ export function Screen({ children, style, safeBottom = false, ...props }: Screen
       edges={safeBottom ? ['top', 'left', 'right', 'bottom'] : ['top', 'left', 'right']}
       style={[styles.safe, { backgroundColor: colors.canvas }]}
     >
-      <View {...props} style={[styles.content, { direction: isRTL ? 'rtl' : 'ltr' }, style]}>
+      <Animated.View
+        {...props}
+        entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}
+        style={[styles.content, { direction: isRTL ? 'rtl' : 'ltr' }, style]}
+      >
         {children}
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 }

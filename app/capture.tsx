@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { File } from 'expo-file-system';
@@ -36,6 +36,7 @@ import {
   Screen,
 } from '@/ui/components';
 import { fonts, radii, spacing, useTheme } from '@/ui/theme';
+import { appHaptics } from '@/ui/feedback/haptics';
 import {
   recognizePackageWithOpenRouter,
   type PackageRecognition,
@@ -73,6 +74,7 @@ export default function CaptureScreen() {
   const [recognizedIngredients, setRecognizedIngredients] = useState<
     PackageRecognition['ingredientComponents']
   >([]);
+  const saveInFlight = useRef(false);
 
   const recognize = useMutation({
     mutationFn: async () => {
@@ -186,6 +188,7 @@ export default function CaptureScreen() {
       return { destination, id };
     },
     onSuccess: async ({ destination, id }) => {
+      appHaptics.captureSaved();
       await queryClient.invalidateQueries({ queryKey: drugQueryKeys.all });
       if (destination === 'open') router.replace(`/drug/${id}`);
       else if (destination === 'later') router.back();
@@ -210,7 +213,17 @@ export default function CaptureScreen() {
     },
     onError: (reason) =>
       setError(reason instanceof Error ? reason.message : 'The package could not be saved.'),
+    onSettled: () => {
+      saveInFlight.current = false;
+    },
   });
+
+  const beginSave = (destination: SaveDestination) => {
+    if (saveInFlight.current || save.isPending) return;
+    saveInFlight.current = true;
+    setError(null);
+    save.mutate({ destination });
+  };
 
   const appendAssets = (incoming: ImagePicker.ImagePickerAsset[]) => {
     setAssets((current) => [...current, ...incoming].slice(0, 8));
@@ -686,36 +699,40 @@ export default function CaptureScreen() {
               </AppText>
             </View>
           ) : null}
-
-          <View style={styles.saveActions}>
-            <PrimaryButton
-              label={save.isPending ? 'Saving package…' : 'Save and open profile'}
-              icon="check"
-              disabled={save.isPending}
-              onPress={() => save.mutate({ destination: 'open' })}
-            />
-            <View style={styles.secondaryActions}>
-              <PressableScale
-                accessibilityRole="button"
-                onPress={() => save.mutate({ destination: 'later' })}
-                disabled={save.isPending}
-              >
-                <AppText variant="bodyStrong" color={colors.aqua}>
-                  Save for later
-                </AppText>
-              </PressableScale>
-              <PressableScale
-                accessibilityRole="button"
-                onPress={() => save.mutate({ destination: 'another' })}
-                disabled={save.isPending}
-              >
-                <AppText variant="bodyStrong" color={colors.aqua}>
-                  Save another
-                </AppText>
-              </PressableScale>
-            </View>
-          </View>
         </ScrollView>
+        <View
+          style={[
+            styles.saveActions,
+            { backgroundColor: colors.canvas, borderTopColor: colors.line },
+          ]}
+        >
+          <PrimaryButton
+            label={save.isPending ? 'Saving package…' : 'Save and open profile'}
+            icon="check"
+            disabled={save.isPending}
+            onPress={() => beginSave('open')}
+          />
+          <View style={styles.secondaryActions}>
+            <PressableScale
+              accessibilityRole="button"
+              onPress={() => beginSave('later')}
+              disabled={save.isPending}
+            >
+              <AppText variant="bodyStrong" color={colors.aqua}>
+                Save for later
+              </AppText>
+            </PressableScale>
+            <PressableScale
+              accessibilityRole="button"
+              onPress={() => beginSave('another')}
+              disabled={save.isPending}
+            >
+              <AppText variant="bodyStrong" color={colors.aqua}>
+                Save another
+              </AppText>
+            </PressableScale>
+          </View>
+        </View>
       </KeyboardAvoidingView>
       <ImageEditorModal
         asset={editQueue[0] ?? null}
@@ -731,7 +748,7 @@ export default function CaptureScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: spacing.lg, gap: spacing.xl, paddingBottom: spacing.section },
+  content: { padding: spacing.lg, gap: spacing.xl, paddingBottom: spacing.xxl },
   titleRow: { flexDirection: 'row', gap: spacing.md },
   titleCopy: { flex: 1, gap: spacing.xs },
   close: {
@@ -763,7 +780,7 @@ const styles = StyleSheet.create({
   packageDetails: { borderWidth: 1, borderRadius: radii.lg, padding: spacing.md, gap: spacing.xs },
   packageHeading: { marginBottom: spacing.xs },
   fieldRow: { flexDirection: 'row', gap: spacing.sm },
-  rowInput: { flex: 1 },
+  rowInput: { flex: 1, minWidth: 0 },
   input: {
     minHeight: 52,
     borderWidth: 1,
@@ -813,6 +830,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
   },
   errorText: { flex: 1 },
-  saveActions: { gap: spacing.md },
+  saveActions: {
+    gap: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
   secondaryActions: { flexDirection: 'row', justifyContent: 'space-around', gap: spacing.lg },
 });

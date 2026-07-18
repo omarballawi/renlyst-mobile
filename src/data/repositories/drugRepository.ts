@@ -211,16 +211,18 @@ export class DrugRepository {
   async primaryImageUris(): Promise<Record<string, string>> {
     const rows = await this.db.getAllAsync<ImageRow>(
       `SELECT drug_id, uri FROM (
-         SELECT di.drug_id, di.uri, 0 AS owner_priority,
-           CASE di.role WHEN 'card' THEN 0 ELSE 1 END AS role_priority
+         SELECT di.drug_id, di.uri, 1 AS owner_priority,
+           CASE di.role WHEN 'thumbnail' THEN 0 WHEN 'card' THEN 1 ELSE 2 END AS role_priority
          FROM drug_images di
-         WHERE di.drug_id IS NOT NULL AND di.ordinal = 0 AND di.role IN ('original', 'card')
+         WHERE di.drug_id IS NOT NULL AND di.ordinal = 0
+           AND di.role IN ('thumbnail', 'card', 'original')
          UNION ALL
-         SELECT dp.profile_id AS drug_id, di.uri, 1 AS owner_priority,
-           CASE di.role WHEN 'card' THEN 0 ELSE 1 END AS role_priority
+         SELECT dp.profile_id AS drug_id, di.uri, 0 AS owner_priority,
+           CASE di.role WHEN 'thumbnail' THEN 0 WHEN 'card' THEN 1 ELSE 2 END AS role_priority
          FROM drug_images di
          JOIN drug_products dp ON dp.id = di.product_id
-         WHERE dp.profile_id IS NOT NULL AND di.ordinal = 0 AND di.role IN ('original', 'card')
+         WHERE dp.profile_id IS NOT NULL AND di.ordinal = 0
+           AND di.role IN ('thumbnail', 'card', 'original')
        )
        ORDER BY owner_priority, role_priority`,
     );

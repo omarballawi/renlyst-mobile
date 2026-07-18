@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 
 import type { DrugBackup } from '@/domain/backup';
 import { readDoseRegimens } from '@/domain/clinical/doseCalculator';
@@ -20,40 +28,198 @@ import {
   drugQueryKeys,
   useDrug,
   useDrugRepository,
+  usePrimaryImageUris,
   useProductRepository,
   useProducts,
   useRelationships,
 } from '@/features/library/queries';
 import { useLocale } from '@/localization/LocaleProvider';
-import { AppText, Icon, PressableScale, Screen } from '@/ui/components';
-import { radii, spacing, useTheme } from '@/ui/theme';
+import {
+  AppText,
+  DrugThumbnail,
+  Icon,
+  MotionReveal,
+  PressableScale,
+  Screen,
+} from '@/ui/components';
+import { fonts, radii, spacing, useTheme } from '@/ui/theme';
 
-type SectionProps = { title: string; children: React.ReactNode };
+type ProfileTopic = 'overview' | 'packages' | 'uses' | 'safety' | 'pharmacology' | 'sources';
 
-function Section({ title, children }: SectionProps) {
+const profileTopics: readonly { key: ProfileTopic; label: string }[] = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'packages', label: 'Packages' },
+  { key: 'uses', label: 'Uses' },
+  { key: 'safety', label: 'Safety' },
+  { key: 'pharmacology', label: 'Pharmacology' },
+  { key: 'sources', label: 'Sources' },
+];
+
+type SectionProps = {
+  title: string;
+  topic?: ProfileTopic;
+  onPosition?(topic: ProfileTopic, y: number): void;
+  children: React.ReactNode;
+};
+
+function Section({ title, topic, onPosition, children }: SectionProps) {
   const { colors } = useTheme();
+  const { isRTL } = useLocale();
+  const onLayout = (event: LayoutChangeEvent) => {
+    if (topic) onPosition?.(topic, event.nativeEvent.layout.y);
+  };
   return (
-    <View style={[styles.section, { borderTopColor: colors.line }]}>
-      <AppText variant="label" color={colors.aqua}>
-        {title.toLocaleUpperCase()}
-      </AppText>
+    <View onLayout={onLayout} style={[styles.section, { borderTopColor: colors.line }]}>
+      <View style={styles.sectionLabel}>
+        <View style={[styles.sectionMark, { backgroundColor: colors.aqua }]} />
+        <AppText variant="label" color={colors.aqua}>
+          {isRTL ? title : title.toLocaleUpperCase()}
+        </AppText>
+      </View>
       {children}
     </View>
   );
 }
 
-function TextList({ values, empty }: { values: readonly string[]; empty: string }) {
+function ProfileTopicBar({ onSelect }: { onSelect(topic: ProfileTopic): void }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.topicBar, { backgroundColor: colors.canvas, borderColor: colors.line }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.topicBarContent}
+      >
+        {profileTopics.map((topic) => (
+          <PressableScale
+            key={topic.key}
+            accessibilityRole="button"
+            accessibilityLabel={`Jump to ${topic.label}`}
+            onPress={() => onSelect(topic.key)}
+            style={[styles.topicDestination, { backgroundColor: colors.surface }]}
+          >
+            <AppText variant="caption" color={colors.ink}>
+              {topic.label}
+            </AppText>
+          </PressableScale>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+type ClinicalTone = 'clinical' | 'safety' | 'kinetic' | 'neutral';
+
+const safetyWords =
+  /^(avoid|contraindicated|warning|urgent|monitor|do not|never|not exceed|dose reduction|hypotension|bleeding|allergy)$/iu;
+const clinicalEmphasis =
+  /(avoid|contraindicated|warning|urgent|monitor|do not|never|not exceed|dose reduction|hypotension|bleeding|allergy|\d+(?:\.\d+)?\s?(?:mg|mcg|g|ml|hours?|minutes?|days?|%))/giu;
+const clinicalEmphasisPart =
+  /^(avoid|contraindicated|warning|urgent|monitor|do not|never|not exceed|dose reduction|hypotension|bleeding|allergy|\d+(?:\.\d+)?\s?(?:mg|mcg|g|ml|hours?|minutes?|days?|%))$/iu;
+
+function ClinicalRichText({
+  value,
+  tone = 'clinical',
+  strong = false,
+}: {
+  value: string;
+  tone?: ClinicalTone;
+  strong?: boolean;
+}) {
+  const { colors } = useTheme();
+  const accent =
+    tone === 'safety'
+      ? colors.danger
+      : tone === 'kinetic'
+        ? colors.saffron
+        : tone === 'neutral'
+          ? colors.mutedInk
+          : colors.aqua;
+  const parts = value.split(clinicalEmphasis);
+  return (
+    <AppText
+      selectable
+      variant={strong ? 'bodyStrong' : 'body'}
+      color={colors.ink}
+      style={styles.clinicalText}
+    >
+      {parts.map((part, index) => {
+        const emphasized = clinicalEmphasisPart.test(part);
+        if (!emphasized) return part;
+        const safety = safetyWords.test(part.trim());
+        return (
+          <Text
+            key={`${part}-${index}`}
+            style={{
+              color: safety ? colors.danger : accent,
+              fontFamily: fonts.bodyBold,
+              textDecorationLine: safety ? 'underline' : 'none',
+            }}
+          >
+            {part}
+          </Text>
+        );
+      })}
+    </AppText>
+  );
+}
+
+function ClinicalProse({ value, tone }: { value: string; tone: ClinicalTone }) {
+  const normalized = value.replace(/\s+/gu, ' ').trim();
+  const sentences: string[] = [];
+  let sentenceStart = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    const character = normalized[index];
+    const next = normalized[index + 1];
+    if (!character || !'.!?'.includes(character) || (next && next !== ' ')) continue;
+    const sentence = normalized.slice(sentenceStart, index + 1).trim();
+    if (sentence) sentences.push(sentence);
+    sentenceStart = index + 1;
+  }
+  const remainder = normalized.slice(sentenceStart).trim();
+  if (remainder) sentences.push(remainder);
+  return (
+    <View style={styles.prose}>
+      {sentences.map((sentence, index) => (
+        <ClinicalRichText
+          key={`${sentence}-${index}`}
+          value={sentence}
+          tone={tone}
+          strong={index === 0}
+        />
+      ))}
+    </View>
+  );
+}
+
+function TextList({
+  values,
+  empty,
+  tone = 'clinical',
+}: {
+  values: readonly string[];
+  empty: string;
+  tone?: ClinicalTone;
+}) {
   const { colors } = useTheme();
   const cleaned = values.filter((value) => value.trim());
   if (cleaned.length === 0) return <AppText color={colors.mutedInk}>{empty}</AppText>;
+  const accent =
+    tone === 'safety'
+      ? colors.coral
+      : tone === 'kinetic'
+        ? colors.saffron
+        : tone === 'neutral'
+          ? colors.mutedInk
+          : colors.aqua;
   return (
     <View style={styles.list}>
       {cleaned.map((value, index) => (
         <View key={`${value}-${index}`} style={styles.listRow}>
-          <View style={[styles.bullet, { backgroundColor: colors.coral }]} />
-          <AppText color={colors.ink} style={styles.listText}>
-            {value}
-          </AppText>
+          <View style={[styles.bullet, { backgroundColor: accent }]} />
+          <View style={styles.listText}>
+            <ClinicalRichText value={value} tone={tone} />
+          </View>
         </View>
       ))}
     </View>
@@ -80,7 +246,10 @@ export default function DrugProfileScreen() {
   const drug = useDrug(id);
   const products = useProducts(id);
   const relationships = useRelationships(id);
+  const primaryImages = usePrimaryImageUris();
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionPositions = useRef<Partial<Record<ProfileTopic, number>>>({});
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -206,6 +375,24 @@ export default function DrugProfileScreen() {
   const structuredClinical = structuredClinicalForDrug(profile);
   const atomicNotes = readAtomicNotes(profile);
   const anchors = memoryAnchorsFor(profile);
+  const primaryImageUri = primaryImages.data?.[id] ?? null;
+  const rememberSectionPosition = (topic: ProfileTopic, y: number) => {
+    sectionPositions.current[topic] = y;
+  };
+  const scrollToTopic = (topic: ProfileTopic) => {
+    const target = topic === 'overview' ? 0 : sectionPositions.current[topic];
+    if (target === undefined) return;
+    scrollRef.current?.scrollTo({ y: Math.max(0, target - 58), animated: true });
+  };
+  const quickFacts = [
+    { label: 'CLASS', value: profile.drugClass.trim(), tone: 'clinical' as const },
+    { label: 'MAIN USE', value: profile.indications[0]?.trim() ?? '', tone: 'clinical' as const },
+    {
+      label: 'WATCH',
+      value: profile.warnings[0]?.trim() || profile.contraindications[0]?.trim() || '',
+      tone: 'safety' as const,
+    },
+  ].filter((fact) => fact.value);
   const anchorTone: Record<MemoryAnchorKind, string> = {
     mustKnow: colors.ink,
     use: colors.ink,
@@ -216,7 +403,7 @@ export default function DrugProfileScreen() {
   };
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} stickyHeaderIndices={[2]} contentContainerStyle={styles.content}>
         <View style={styles.navigation}>
           <PressableScale
             accessibilityRole="button"
@@ -254,6 +441,44 @@ export default function DrugProfileScreen() {
           <AppText variant="heading" color={colors.mutedInk}>
             {profile.tradeNames.join(' · ') || 'No brand attached yet'}
           </AppText>
+          {primaryImageUri ? (
+            <View
+              style={[
+                styles.heroMedia,
+                { backgroundColor: colors.surface, borderColor: colors.line },
+              ]}
+            >
+              <Image
+                source={primaryImageUri}
+                recyclingKey={id}
+                style={styles.heroImage}
+                contentFit="cover"
+                transition={160}
+                accessibilityLabel={t(`${name} package`)}
+              />
+              <View style={styles.heroMediaCaption}>
+                <Icon name="image" color={colors.aqua} size={17} />
+                <AppText variant="caption" color={colors.mutedInk}>
+                  Package preview · tap Brands & packages for every image
+                </AppText>
+              </View>
+            </View>
+          ) : null}
+          {quickFacts.length > 0 ? (
+            <View style={[styles.quickFacts, { borderColor: colors.line }]}>
+              {quickFacts.map((fact) => (
+                <View key={fact.label} style={styles.quickFact}>
+                  <AppText
+                    variant="label"
+                    color={fact.tone === 'safety' ? colors.coral : colors.aqua}
+                  >
+                    {fact.label}
+                  </AppText>
+                  <ClinicalRichText value={fact.value} tone={fact.tone} strong />
+                </View>
+              ))}
+            </View>
+          ) : null}
           <View
             style={[
               styles.masterySummary,
@@ -282,6 +507,8 @@ export default function DrugProfileScreen() {
           </View>
         </View>
 
+        <ProfileTopicBar onSelect={scrollToTopic} />
+
         <View style={styles.anchorSection}>
           <View style={styles.anchorHeading}>
             <AppText variant="heading" color={colors.ink}>
@@ -297,7 +524,10 @@ export default function DrugProfileScreen() {
                 key={anchor.id}
                 style={[
                   styles.anchorRow,
-                  index < anchors.length - 1 && { borderBottomColor: colors.line },
+                  index < anchors.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.line,
+                  },
                 ]}
               >
                 <View style={[styles.anchorNumber, { backgroundColor: anchorTone[anchor.kind] }]}>
@@ -321,7 +551,7 @@ export default function DrugProfileScreen() {
           </View>
         </View>
 
-        <Section title="Brands & packages">
+        <Section title="Brands & packages" topic="packages" onPosition={rememberSectionPosition}>
           <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Add a photographed brand"
@@ -399,18 +629,24 @@ export default function DrugProfileScreen() {
             <TextList values={profile.tradeNames} empty="No brand product has been saved." />
           ) : null}
         </Section>
-        <Section title="Uses">
-          <TextList values={profile.indications} empty="No verified indication is saved yet." />
+        <Section title="Uses" topic="uses" onPosition={rememberSectionPosition}>
+          <TextList
+            values={profile.indications}
+            empty="No verified indication is saved yet."
+            tone="clinical"
+          />
         </Section>
         <Section title="Forms & dosing">
           <TextList
             values={[...profile.dosageForms, ...profile.strengths, ...profile.routes]}
             empty="No form, strength, or route is saved yet."
+            tone="kinetic"
           />
-          {profile.howToTake ? <AppText color={colors.ink}>{profile.howToTake}</AppText> : null}
-          {profile.foodInstruction ? (
-            <AppText color={colors.mutedInk}>{profile.foodInstruction}</AppText>
-          ) : null}
+          <TextList
+            values={[profile.howToTake, profile.foodInstruction]}
+            empty="No administration note is saved yet."
+            tone="clinical"
+          />
           <PressableScale
             accessibilityRole="button"
             onPress={() => router.push(`/drug/${id}/dose`)}
@@ -429,7 +665,7 @@ export default function DrugProfileScreen() {
             <Icon name="chevron" color={colors.aqua} size={18} />
           </PressableScale>
         </Section>
-        <Section title="Safety">
+        <Section title="Safety" topic="safety" onPosition={rememberSectionPosition}>
           <TextList
             values={[
               ...profile.warnings,
@@ -437,16 +673,17 @@ export default function DrugProfileScreen() {
               ...profile.seriousSideEffects,
             ]}
             empty="No warning or contraindication is saved yet."
+            tone="safety"
           />
-          {profile.renalCaution ? (
-            <AppText color={colors.ink}>Renal: {profile.renalCaution}</AppText>
-          ) : null}
-          {profile.hepaticCaution ? (
-            <AppText color={colors.ink}>Hepatic: {profile.hepaticCaution}</AppText>
-          ) : null}
-          {profile.pregnancyCaution ? (
-            <AppText color={colors.ink}>Pregnancy: {profile.pregnancyCaution}</AppText>
-          ) : null}
+          <TextList
+            values={[
+              profile.renalCaution ? `Renal — ${profile.renalCaution}` : '',
+              profile.hepaticCaution ? `Hepatic — ${profile.hepaticCaution}` : '',
+              profile.pregnancyCaution ? `Pregnancy — ${profile.pregnancyCaution}` : '',
+            ]}
+            empty="No organ-specific caution is saved yet."
+            tone="safety"
+          />
           <PressableScale
             accessibilityRole="button"
             onPress={() => router.push(`/drug/${id}/clinical`)}
@@ -484,6 +721,13 @@ export default function DrugProfileScreen() {
               ]}
             >
               <View style={styles.relationshipHeading}>
+                <DrugThumbnail
+                  id={otherProfile?.id ?? relationship.id}
+                  name={otherProfile?.scientificName || 'Unavailable linked profile'}
+                  uri={otherProfile ? primaryImages.data?.[otherProfile.id] : null}
+                  size={44}
+                  unknown={!otherProfile}
+                />
                 <View style={styles.relationshipCopy}>
                   <AppText variant="bodyStrong" color={colors.ink}>
                     {otherProfile?.scientificName || 'Unavailable linked profile'}
@@ -505,11 +749,28 @@ export default function DrugProfileScreen() {
                   {(relationship.severityRaw || 'Unknown').toLocaleUpperCase()}
                 </AppText>
               </View>
-              <AppText color={colors.ink}>{relationship.summary}</AppText>
+              <ClinicalProse
+                value={relationship.summary}
+                tone={
+                  /high|severe|contraindicated|medium|moderate/iu.test(relationship.severityRaw)
+                    ? 'safety'
+                    : 'clinical'
+                }
+              />
               {relationship.managementNote.trim() ? (
-                <AppText variant="caption" color={colors.mutedInk}>
-                  {relationship.managementNote}
-                </AppText>
+                <MotionReveal direction="up">
+                  <View
+                    style={[
+                      styles.management,
+                      { borderColor: colors.saffron, backgroundColor: colors.saffronSoft },
+                    ]}
+                  >
+                    <AppText variant="label" color={colors.saffron}>
+                      MANAGEMENT
+                    </AppText>
+                    <ClinicalRichText value={relationship.managementNote} tone="safety" strong />
+                  </View>
+                </MotionReveal>
               ) : null}
             </PressableScale>
           ))}
@@ -519,10 +780,12 @@ export default function DrugProfileScreen() {
             </AppText>
           ) : null}
         </Section>
-        <Section title="Pharmacology">
-          <AppText color={profile.mechanism ? colors.ink : colors.mutedInk}>
-            {profile.mechanism || 'No mechanism is saved yet.'}
-          </AppText>
+        <Section title="Pharmacology" topic="pharmacology" onPosition={rememberSectionPosition}>
+          {profile.mechanism ? (
+            <ClinicalProse value={profile.mechanism} tone="clinical" />
+          ) : (
+            <AppText color={colors.mutedInk}>No mechanism is saved yet.</AppText>
+          )}
           <TextList
             values={[
               profile.halfLifeText,
@@ -531,6 +794,7 @@ export default function DrugProfileScreen() {
               profile.excretionNotes,
             ]}
             empty="No pharmacokinetic notes are saved yet."
+            tone="kinetic"
           />
         </Section>
         <Section title="Counseling & Arabic">
@@ -543,9 +807,10 @@ export default function DrugProfileScreen() {
               profile.missedDoseArabic,
             ]}
             empty="No counseling or Arabic explanation is saved yet."
+            tone="clinical"
           />
         </Section>
-        <Section title="Sources & notes">
+        <Section title="Sources & notes" topic="sources" onPosition={rememberSectionPosition}>
           <View style={[styles.sourceEvidence, { borderColor: colors.line }]}>
             <View style={styles.sourceRow}>
               <AppText variant="caption" color={colors.mutedInk}>
@@ -594,6 +859,7 @@ export default function DrugProfileScreen() {
           <TextList
             values={[profile.sourceNote, profile.sourceQualityNotes, profile.notes]}
             empty="No sources or personal notes are saved yet."
+            tone="neutral"
           />
           <PressableScale
             accessibilityRole="button"
@@ -738,7 +1004,41 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     justifyContent: 'center',
   },
-  hero: { gap: spacing.xs },
+  topicBar: {
+    marginHorizontal: -spacing.lg,
+    paddingVertical: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  topicBarContent: { paddingHorizontal: spacing.lg, gap: spacing.xs },
+  topicDestination: {
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+  },
+  hero: { gap: spacing.sm },
+  heroMedia: {
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+  },
+  heroImage: { width: '100%', height: 210 },
+  heroMediaCaption: {
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  quickFacts: {
+    marginTop: spacing.xs,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: spacing.xs,
+  },
+  quickFact: { paddingVertical: spacing.sm, gap: spacing.xxs },
   masterySummary: {
     marginTop: spacing.md,
     borderWidth: 1,
@@ -758,7 +1058,6 @@ const styles = StyleSheet.create({
   anchorRow: {
     minHeight: 84,
     padding: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.md,
@@ -772,6 +1071,8 @@ const styles = StyleSheet.create({
   },
   anchorCopy: { flex: 1, gap: spacing.xxs },
   section: { borderTopWidth: 1, paddingTop: spacing.lg, gap: spacing.md },
+  sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  sectionMark: { width: 18, height: 3, borderRadius: radii.pill },
   addBrand: {
     minHeight: 72,
     borderRadius: radii.lg,
@@ -826,6 +1127,14 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   relationshipCopy: { flex: 1, gap: 2 },
+  management: {
+    borderWidth: 1,
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+    gap: spacing.xxs,
+  },
+  prose: { gap: spacing.xs },
+  clinicalText: { flexShrink: 1 },
   list: { gap: spacing.xs },
   listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   bullet: { width: 6, height: 6, borderRadius: 3, marginTop: 9 },

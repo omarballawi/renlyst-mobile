@@ -34,10 +34,13 @@ export function LocaleProvider({ children }: PropsWithChildren) {
   const language = setting.data ?? deviceLanguage();
   const setLanguage = useCallback(
     (value: AppLanguage) => {
+      const previous = queryClient.getQueryData<AppLanguage>(languageSettingQueryKey) ?? language;
       queryClient.setQueryData(languageSettingQueryKey, value);
-      void new SettingsRepository(db).set(settingKeys.language, value);
+      void new SettingsRepository(db)
+        .set(settingKeys.language, value)
+        .catch(() => queryClient.setQueryData(languageSettingQueryKey, previous));
     },
-    [db, queryClient],
+    [db, language, queryClient],
   );
   const value = useMemo<LocaleContextValue>(
     () => ({

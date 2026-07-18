@@ -2,8 +2,15 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { useDrugList } from '@/features/library/queries';
-import { AppText, Icon, PressableScale, PrimaryButton, Screen } from '@/ui/components';
+import { useDrugList, usePrimaryImageUris } from '@/features/library/queries';
+import {
+  AppText,
+  DrugThumbnail,
+  Icon,
+  PressableScale,
+  PrimaryButton,
+  Screen,
+} from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 const chapters = [
@@ -38,6 +45,7 @@ export default function ShelfQuestScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const drugs = useDrugList({ scope: 'all', sort: 'recent' });
+  const primaryImages = usePrimaryImageUris();
   const [chapter, setChapter] = useState<Chapter>('Cardiovascular');
   const targets = targetedQuests[chapter] ?? fallbackQuests;
   const matched = (target: string) =>
@@ -101,53 +109,52 @@ export default function ShelfQuestScreen() {
         <View style={styles.quests}>
           {targets.map((target) => {
             const found = matched(target);
+            const foundName = found?.scientificName || found?.captureLabel || target;
             return (
-              <View
+              <PressableScale
                 key={target}
+                accessibilityRole="button"
+                accessibilityLabel={found ? `Open ${foundName}` : `Capture ${target}`}
+                onPress={() =>
+                  found
+                    ? router.push(`/drug/${found.id}`)
+                    : router.push(`/capture?chapter=${encodeURIComponent(chapter)}`)
+                }
                 style={[
                   styles.quest,
                   { backgroundColor: colors.surface, borderColor: colors.line },
                 ]}
               >
-                <View
-                  style={[
-                    styles.check,
-                    { backgroundColor: found ? colors.aquaSoft : colors.surfaceStrong },
-                  ]}
-                >
-                  <Icon
-                    name={found ? 'check' : 'camera'}
-                    color={found ? colors.aqua : colors.mutedInk}
-                    size={18}
+                {found ? (
+                  <DrugThumbnail
+                    id={found.id}
+                    name={foundName}
+                    uri={primaryImages.data?.[found.id]}
+                    size={44}
+                    unknown={found.isUnknown}
+                    accessibilityLabel={`${foundName} package preview`}
                   />
-                </View>
+                ) : (
+                  <View style={[styles.check, { backgroundColor: colors.surfaceStrong }]}>
+                    <Icon name="camera" color={colors.mutedInk} size={18} />
+                  </View>
+                )}
                 <View style={styles.questCopy}>
                   <AppText variant="bodyStrong" color={colors.ink}>
                     {target}
                   </AppText>
                   <AppText variant="caption" color={colors.mutedInk}>
-                    {found?.scientificName || 'Not found on your shelf yet'}
+                    {found ? foundName : 'Not found on your shelf yet'}
                   </AppText>
                 </View>
                 {found ? (
-                  <PressableScale
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${found.scientificName || target}`}
-                    onPress={() => router.push(`/drug/${found.id}`)}
-                  >
-                    <Icon name="chevron" color={colors.aqua} size={18} />
-                  </PressableScale>
+                  <Icon name="chevron" color={colors.aqua} size={18} />
                 ) : (
-                  <PressableScale
-                    accessibilityRole="button"
-                    accessibilityLabel={`Capture ${target}`}
-                    onPress={() => router.push(`/capture?chapter=${encodeURIComponent(chapter)}`)}
-                    style={[styles.capture, { borderColor: colors.coral }]}
-                  >
+                  <View style={[styles.capture, { borderColor: colors.coral }]}>
                     <Icon name="camera" color={colors.coral} size={18} />
-                  </PressableScale>
+                  </View>
                 )}
-              </View>
+              </PressableScale>
             );
           })}
         </View>

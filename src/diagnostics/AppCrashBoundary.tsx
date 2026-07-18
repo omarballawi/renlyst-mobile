@@ -3,6 +3,7 @@ import { Component, useState } from 'react';
 import Constants from 'expo-constants';
 import * as Clipboard from 'expo-clipboard';
 import { getLocales } from 'expo-localization';
+import * as SplashScreen from 'expo-splash-screen';
 import { Linking, Platform, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import {
@@ -30,6 +31,7 @@ export class AppCrashBoundary extends Component<AppCrashBoundaryProps, AppCrashB
   override state: AppCrashBoundaryState = { report: null, attempt: 0 };
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    void SplashScreen.hideAsync().catch(() => undefined);
     const report = createCrashDiagnostic({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
       appVersion: Constants.expoConfig?.version ?? 'unknown',
@@ -177,11 +179,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.xl,
     gap: spacing.md,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
-    elevation: 8,
   },
   eyebrow: { fontFamily: 'Manrope_800ExtraBold', fontSize: 12, letterSpacing: 1.1 },
   title: {

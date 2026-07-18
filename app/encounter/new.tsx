@@ -3,11 +3,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
-import { useDrugList } from '@/features/library/queries';
+import { useDrugList, usePrimaryImageUris } from '@/features/library/queries';
 import { trainingQueryKeys, useTrainingRepository } from '@/features/training/queries';
 import {
   AppText,
   AppTextInput as TextInput,
+  DrugThumbnail,
   Icon,
   PressableScale,
   PrimaryButton,
@@ -55,6 +56,7 @@ export default function NewEncounterScreen() {
   const queryClient = useQueryClient();
   const repository = useTrainingRepository();
   const drugs = useDrugList({ sort: 'name' });
+  const primaryImages = usePrimaryImageUris();
   const [topic, setTopic] = useState('');
   const [relatedDrugID, setRelatedDrugID] = useState<string | null>(null);
   const [whatHappened, setWhatHappened] = useState('');
@@ -168,6 +170,13 @@ export default function NewEncounterScreen() {
                     onPress={() => setRelatedDrugID(drug.id)}
                     style={[styles.chip, { borderColor: selected ? colors.coral : colors.line }]}
                   >
+                    <DrugThumbnail
+                      id={drug.id}
+                      name={drug.scientificName || drug.captureLabel}
+                      uri={primaryImages.data?.[drug.id]}
+                      size={30}
+                      unknown={drug.isUnknown}
+                    />
                     <AppText variant="caption" color={selected ? colors.coral : colors.ink}>
                       {drug.scientificName.trim() || drug.captureLabel}
                     </AppText>
@@ -292,7 +301,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
     justifyContent: 'center',
   },
   confirmation: {

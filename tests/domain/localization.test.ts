@@ -33,4 +33,19 @@ describe('localized product copy', () => {
     expect(translateCopy(fullSentence, 'ar')).not.toContain('known medicine');
     expect(translateCopy(fullSentence, 'ar')).not.toBe(fullSentence);
   });
+
+  it('keeps dynamic Today copy together in Arabic', () => {
+    expect(translateCopy('Review 43 due drugs', 'ar')).toBe('راجع 43 من الأدوية المستحقة');
+    expect(translateCopy('58 weak drugs need a short return', 'ar')).toBe(
+      '58 من الأدوية الضعيفة تحتاج إلى مراجعة قصيرة',
+    );
+  });
+
+  it('localizes visual library navigation and common clinical chapters', () => {
+    expect(translateCopy('FIRST', 'ar')).toBe('الأول');
+    expect(translateCopy('Choose second profile', 'ar')).toBe('اختر الملف الثاني');
+    expect(translateCopy('Cardiovascular', 'ar')).toBe('القلبي الوعائي');
+    expect(translateCopy('ACE inhibitor', 'ar')).toBe('مثبط الإنزيم المحول للأنجيوتنسين');
+    expect(translateCopy('Not found on your shelf yet', 'ar')).toBe('غير موجود على رفك بعد');
+  });
 });
