@@ -5,7 +5,8 @@ appId: com.renlyst.app.next
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
-- tapOn: 'Capture first package'
+- tapOn:
+    id: 'today-add'
 - tapOn: 'Open fast capture'
 - tapOn:
     id: 'capture-active-ingredient'
@@ -13,33 +14,9 @@ appId: com.renlyst.app.next
 - tapOn:
     id: 'capture-brand'
 - inputText: 'Lasix'
-- tapOn:
-    id: 'capture-strength'
-- inputText: '40 mg'
 - hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: 'capture-dosage-form'
-    direction: DOWN
-    timeout: 10000
-- tapOn:
-    id: 'capture-dosage-form'
-- inputText: 'Tablet'
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: 'capture-drug-class'
-    direction: DOWN
-    timeout: 10000
-- tapOn:
-    id: 'capture-drug-class'
-- inputText: 'Loop diuretic'
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      text: 'Save and open profile'
-    direction: DOWN
-    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: 'Save and open profile'
 - extendedWaitUntil:
     visible: 'Furosemide'

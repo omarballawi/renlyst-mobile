@@ -10,10 +10,11 @@ type PageHeaderProps = {
   eyebrow?: string;
   title: string;
   subtitle?: string;
+  addTestID?: string;
   onAdd?(): void;
 };
 
-export function PageHeader({ eyebrow, title, subtitle, onAdd }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, subtitle, addTestID, onAdd }: PageHeaderProps) {
   const { colors } = useTheme();
   const { isRTL } = useLocale();
   return (
@@ -35,6 +36,7 @@ export function PageHeader({ eyebrow, title, subtitle, onAdd }: PageHeaderProps)
       </View>
       {onAdd ? (
         <PressableScale
+          testID={addTestID}
           accessibilityRole="button"
           accessibilityLabel="Capture a medicine package"
           accessibilityHint="Opens the capture sheet"

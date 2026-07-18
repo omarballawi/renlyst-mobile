@@ -84,6 +84,7 @@ export default function TodayScreen() {
           eyebrow="Renlyst"
           title="Make today stick."
           subtitle="One useful step now beats a crowded study plan later."
+          addTestID="today-add"
           onAdd={() => router.push('/add')}
         />
 

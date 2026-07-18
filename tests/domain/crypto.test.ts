@@ -1,20 +1,20 @@
-import * as Crypto from 'expo-crypto';
-
 import { sha256Hex } from '@/domain/shared/crypto';
 
-describe('native crypto bridge inputs', () => {
-  it('passes image bytes as a TypedArray instead of an ArrayBuffer', async () => {
-    const digest = jest.mocked(Crypto.digest);
-    digest.mockResolvedValueOnce(new Uint8Array([0x0a, 0xff]).buffer);
-    const bytes = new Uint8Array([1, 2, 3]);
+describe('sha256Hex', () => {
+  it('matches the standard SHA-256 vector for raw bytes', async () => {
+    const bytes = new Uint8Array([0x61, 0x62, 0x63]);
 
-    await expect(sha256Hex(bytes)).resolves.toBe('0aff');
-    const bridgedBytes = digest.mock.calls.at(-1)?.[1];
-    expect(digest).toHaveBeenLastCalledWith(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      expect.any(Uint8Array),
+    await expect(sha256Hex(bytes)).resolves.toBe(
+      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
     );
-    expect(Array.from(bridgedBytes as Uint8Array)).toEqual([1, 2, 3]);
-    expect(bridgedBytes).not.toBe(bytes);
+  });
+
+  it('hashes only the visible range of a Uint8Array view', async () => {
+    const storage = new Uint8Array([0xff, 0x61, 0x62, 0x63, 0xff]);
+    const bytes = storage.subarray(1, 4);
+
+    await expect(sha256Hex(bytes)).resolves.toBe(
+      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+    );
   });
 });

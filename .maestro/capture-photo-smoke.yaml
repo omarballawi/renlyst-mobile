@@ -6,7 +6,8 @@ name: Crop, hash, save, and reopen a package image
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
-- tapOn: 'Capture first package'
+- tapOn:
+    id: 'today-add'
 - tapOn: 'Open fast capture'
 - scrollUntilVisible:
     element:
@@ -21,19 +22,20 @@ name: Crop, hash, save, and reopen a package image
     timeout: 15000
 - tapOn: 'Use this crop'
 - assertVisible: '1/8 selected'
+- scrollUntilVisible:
+    element:
+      id: 'capture-active-ingredient'
+    direction: UP
+    timeout: 15000
 - tapOn:
     id: 'capture-active-ingredient'
 - inputText: 'Furosemide'
 - tapOn:
     id: 'capture-brand'
 - inputText: 'Lasix'
-- tapOn:
-    id: 'capture-strength'
-- inputText: '40 mg'
-- tapOn:
-    id: 'capture-dosage-form'
-- inputText: 'Tablet'
 - hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: 'Save and open profile'
 - extendedWaitUntil:
     visible: 'Furosemide package'

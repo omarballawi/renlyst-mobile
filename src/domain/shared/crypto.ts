@@ -1,17 +1,11 @@
-import * as Crypto from 'expo-crypto';
-
-function bytesToHex(buffer: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/hashes/utils';
 
 /**
- * Hash native file bytes without losing their TypedArray identity at the Expo bridge.
- * `Crypto.digest` accepts a BufferSource, but its Apple implementation casts the
- * data argument to a TypedArray. Passing `bytes.buffer` therefore fails on-device.
+ * Hash file bytes in JavaScript so capture and backup verification do not depend on
+ * the Expo native TypedArray bridge. The result remains the SHA-256 of the raw bytes,
+ * preserving compatibility with existing image identities and backup manifests.
  */
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const nativeBytes = new Uint8Array(bytes.byteLength);
-  nativeBytes.set(bytes);
-  const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, nativeBytes);
-  return bytesToHex(digest);
+  return bytesToHex(sha256(bytes));
 }
