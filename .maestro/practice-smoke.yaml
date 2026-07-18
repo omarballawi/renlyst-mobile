@@ -2,7 +2,11 @@ appId: com.renlyst.app.next
 name: Practice always opens as a five-question session
 ---
 - runFlow: partials/capture-and-search.yaml
-- hideKeyboard
+- tapOn: 'Furosemide'
+- extendedWaitUntil:
+    visible: 'Three memory anchors'
+    timeout: 10000
+- tapOn: 'Back'
 - tapOn:
     id: 'tab-practice'
 - tapOn: 'Start Smart Session'

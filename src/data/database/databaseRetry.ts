@@ -18,7 +18,9 @@ export function isRetryableDatabaseError(error: unknown): boolean {
 
 export async function retryBusyDatabaseOperation<T>(
   operation: () => Promise<T>,
-  delays: readonly number[] = [80, 180],
+  // A force-quit can leave the previous SQLite connection unwinding briefly on iOS.
+  // Keep retrying only known transient lock errors, with a bounded 3.85-second backoff.
+  delays: readonly number[] = [100, 250, 500, 1_000, 2_000],
 ): Promise<T> {
   let attempt = 0;
   while (true) {

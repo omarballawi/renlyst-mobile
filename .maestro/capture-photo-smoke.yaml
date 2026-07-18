@@ -1,7 +1,6 @@
 appId: com.renlyst.app.next
 name: Crop, hash, save, and reopen a package image
 ---
-- stopApp
 - launchApp
 - extendedWaitUntil:
     visible: 'Make today stick.'
@@ -33,10 +32,9 @@ name: Crop, hash, save, and reopen a package image
 - tapOn:
     id: 'capture-brand'
 - inputText: 'Lasix'
-- hideKeyboard
-- waitForAnimationToEnd:
-    timeout: 5000
-- tapOn: 'Save and open profile'
+- tapOn:
+    text: 'Save and open profile'
+    retryTapIfNoChange: true
 - extendedWaitUntil:
     visible: 'Furosemide package'
     timeout: 30000

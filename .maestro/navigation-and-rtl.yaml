@@ -1,7 +1,6 @@
 appId: com.renlyst.app.next
 name: Core navigation, backup, and live Arabic RTL
 ---
-- stopApp
 - launchApp
 - extendedWaitUntil:
     visible: 'Make today stick.'

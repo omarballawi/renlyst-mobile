@@ -1,7 +1,7 @@
 # Graph Report - renlyst-mobile  (2026-07-19)
 
 ## Corpus Check
-- 170 files · ~90,883 words
+- 170 files · ~90,918 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ca4a0e92`
+- Built from commit: `331f46c9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
