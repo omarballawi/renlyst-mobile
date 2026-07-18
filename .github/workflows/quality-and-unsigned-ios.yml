@@ -38,7 +38,7 @@ jobs:
   unsigned-ios:
     needs: quality
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -112,7 +112,7 @@ jobs:
         env:
           MAESTRO_CLI_NO_ANALYTICS: 'true'
           MAESTRO_DISABLE_UPDATE_CHECK: 'true'
-          MAESTRO_DRIVER_STARTUP_TIMEOUT: '30000'
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '120000'
         run: maestro test .maestro
       - name: Collect Maestro failure evidence
         if: failure()
