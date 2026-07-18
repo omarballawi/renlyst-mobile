@@ -3,8 +3,6 @@ name: Crop, hash, save, and reopen a package image
 ---
 - launchApp:
     clearState: true
-- addMedia:
-    - '../assets/icon.png'
 - extendedWaitUntil:
     visible: 'Make today stick.'
     timeout: 20000
