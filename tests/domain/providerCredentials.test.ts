@@ -23,8 +23,14 @@ describe('protected provider credential store', () => {
   beforeEach(() => {
     mockCredentialValues.clear();
     jest.clearAllMocks();
+    jest
+      .mocked(SecureStore.getItemAsync)
+      .mockImplementation(async (key: string) => mockCredentialValues.get(key) ?? null);
     jest.mocked(SecureStore.setItemAsync).mockImplementation(async (key: string, value: string) => {
       mockCredentialValues.set(key, value);
+    });
+    jest.mocked(SecureStore.deleteItemAsync).mockImplementation(async (key: string) => {
+      mockCredentialValues.delete(key);
     });
   });
 
@@ -35,15 +41,25 @@ describe('protected provider credential store', () => {
     expect(mockCredentialValues.get(keys.openRouter)).toBe('sk-private');
   });
 
+  it('retries a transient protected-store read without exposing or discarding credentials', async () => {
+    mockCredentialValues.set(keys.openRouter, 'saved-openrouter');
+    let attempts = 0;
+    jest.mocked(SecureStore.getItemAsync).mockImplementation(async (key: string) => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('protected storage is warming up');
+      return mockCredentialValues.get(key) ?? null;
+    });
+
+    await expect(ProviderCredentialStore.has('openRouter')).resolves.toBe(true);
+    expect(attempts).toBe(2);
+  });
+
   it('rolls earlier credentials back when a later protected-store write fails', async () => {
     mockCredentialValues.set(keys.openRouter, 'old-openrouter');
     mockCredentialValues.set(keys.deepSeek, 'old-deepseek');
-    let failed = false;
     jest.mocked(SecureStore.setItemAsync).mockImplementation(async (key: string, value: string) => {
-      if (key === keys.deepSeek && value === 'new-deepseek' && !failed) {
-        failed = true;
+      if (key === keys.deepSeek && value === 'new-deepseek')
         throw new Error('protected storage unavailable');
-      }
       mockCredentialValues.set(key, value);
     });
 

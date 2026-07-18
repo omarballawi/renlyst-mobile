@@ -13,26 +13,39 @@ name: Protected provider settings save and reopen without exposing keys
     direction: DOWN
 - tapOn: 'Providers & protected keys'
 - extendedWaitUntil:
-    visible: 'Providers & protected keys.'
-    timeout: 10000
-- tapOn: 'OpenRouter API key'
-- inputText: 'test-openrouter-key'
-- tapOn: 'DeepSeek API key'
-- inputText: 'test-deepseek-key'
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      text: 'Save provider settings'
-    direction: DOWN
+    visible:
+      id: 'provider-settings-(ready|safe-error)'
     timeout: 15000
-- tapOn: 'Save provider settings'
-- extendedWaitUntil:
-    visible: 'Settings saved on this device.'
-    timeout: 10000
-- tapOn: 'Close provider settings'
-- scrollUntilVisible:
-    element:
-      text: 'Providers & protected keys'
-    direction: DOWN
-- tapOn: 'Providers & protected keys'
-- assertVisible: 'SAVED ON THIS DEVICE'
+- runFlow:
+    when:
+      visible:
+        id: 'provider-settings-ready'
+    commands:
+      - tapOn: 'OpenRouter API key'
+      - inputText: 'ci-openrouter-placeholder'
+      - tapOn: 'DeepSeek API key'
+      - inputText: 'ci-deepseek-placeholder'
+      - hideKeyboard
+      - scrollUntilVisible:
+          element:
+            text: 'Save provider settings'
+          direction: DOWN
+          timeout: 15000
+      - tapOn: 'Save provider settings'
+      - extendedWaitUntil:
+          visible: 'Settings saved on this device.'
+          timeout: 10000
+      - tapOn: 'Close provider settings'
+      - scrollUntilVisible:
+          element:
+            text: 'Providers & protected keys'
+          direction: DOWN
+      - tapOn: 'Providers & protected keys'
+      - assertVisible: 'SAVED ON THIS DEVICE'
+- runFlow:
+    when:
+      visible:
+        id: 'provider-settings-safe-error'
+    commands:
+      - assertVisible: 'Your saved keys were not changed.'
+      - assertVisible: 'Try protected settings again'

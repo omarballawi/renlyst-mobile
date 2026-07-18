@@ -61,11 +61,13 @@ function ChoiceGroup<T extends string>({
   value,
   choices,
   onChange,
+  testIDPrefix,
 }: {
   label: string;
   value: T;
   choices: readonly { value: T; label: string }[];
   onChange(value: T): void;
+  testIDPrefix?: string;
 }) {
   const { colors } = useTheme();
   return (
@@ -79,6 +81,11 @@ function ChoiceGroup<T extends string>({
           return (
             <PressableScale
               key={choice.value}
+              testID={
+                testIDPrefix
+                  ? `${testIDPrefix}-${choice.value}${selected ? '-selected' : ''}`
+                  : undefined
+              }
               accessibilityRole="button"
               accessibilityState={{ selected }}
               onPress={() => onChange(choice.value)}
@@ -307,6 +314,7 @@ export default function YouScreen() {
           <ChoiceGroup<AppLanguage>
             label="Language"
             value={locale.language}
+            testIDPrefix="language"
             choices={[
               { value: 'en', label: 'English' },
               { value: 'ar', label: 'العربية' },

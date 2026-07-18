@@ -19,8 +19,21 @@ name: Core navigation, backup, and live Arabic RTL
     element:
       text: 'Appearance & language'
     direction: DOWN
-- tapOn: 'العربية'
-- assertVisible: 'أنت'
-- assertVisible: 'المظهر واللغة'
-- tapOn: 'اليوم'
-- assertVisible: 'ثبّت معلومة اليوم.'
+- tapOn:
+    id: 'language-ar'
+- assertVisible:
+    id: 'language-ar-selected'
+- tapOn:
+    id: 'tab-today'
+- assertVisible:
+    id: 'today-screen'
+- tapOn:
+    id: 'tab-you'
+- scrollUntilVisible:
+    element:
+      id: 'language-en'
+    direction: DOWN
+- tapOn:
+    id: 'language-en'
+- assertVisible:
+    id: 'language-en-selected'

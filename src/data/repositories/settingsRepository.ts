@@ -73,6 +73,20 @@ const credentialOperationTails: Record<ProviderCredential, Promise<void>> = {
   altibbi: Promise.resolve(),
 };
 
+const credentialRetryDelaysMs = [80, 240] as const;
+
+async function retryCredentialOperation<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const delayMs = credentialRetryDelaysMs[attempt];
+      if (delayMs === undefined) throw error;
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 function enqueueCredentialOperation<T>(
   provider: ProviderCredential,
   operation: () => Promise<T>,
@@ -91,14 +105,22 @@ export const ProviderCredentialStore = {
   async get(provider: ProviderCredential): Promise<string> {
     return enqueueCredentialOperation(
       provider,
-      async () => (await SecureStore.getItemAsync(credentialKeys[provider])) ?? '',
+      async () =>
+        (await retryCredentialOperation(() =>
+          SecureStore.getItemAsync(credentialKeys[provider]),
+        )) ?? '',
     );
   },
   async set(provider: ProviderCredential, value: string): Promise<void> {
     return enqueueCredentialOperation(provider, async () => {
       const trimmed = normalizeCredential(value);
-      if (trimmed) await SecureStore.setItemAsync(credentialKeys[provider], trimmed);
-      else await SecureStore.deleteItemAsync(credentialKeys[provider]);
+      if (trimmed) {
+        await retryCredentialOperation(() =>
+          SecureStore.setItemAsync(credentialKeys[provider], trimmed),
+        );
+      } else {
+        await retryCredentialOperation(() => SecureStore.deleteItemAsync(credentialKeys[provider]));
+      }
     });
   },
   async has(provider: ProviderCredential): Promise<boolean> {

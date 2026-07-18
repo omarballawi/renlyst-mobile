@@ -73,7 +73,7 @@ export default function TodayScreen() {
     (learning.data?.profile.weakDrugRemindersEnabled ?? true) && weakCount > 0;
 
   return (
-    <Screen>
+    <Screen testID="today-screen">
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={

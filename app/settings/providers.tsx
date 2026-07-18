@@ -239,7 +239,7 @@ function ProviderSettingsEditor({
     setConfiguration((current) => ({ ...current, [field]: value }));
 
   return (
-    <Screen safeBottom>
+    <Screen safeBottom testID="provider-settings-ready">
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <PressableScale
@@ -505,7 +505,7 @@ export default function ProviderSettingsScreen() {
   });
   if (settings.isError)
     return (
-      <Screen safeBottom>
+      <Screen safeBottom testID="provider-settings-safe-error">
         <View style={styles.loadFailure} accessibilityRole="alert">
           <View style={[styles.failureIcon, { backgroundColor: colors.saffronSoft }]}>
             <Icon name="warning" color={colors.saffron} size={24} />
