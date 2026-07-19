@@ -6,14 +6,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: isProduction ? 'Renlyst' : 'Renlyst Next',
   slug: 'renlyst',
-  version: '0.1.0',
+  version: '0.2.0',
   orientation: 'portrait',
   icon: './assets/brand/renlyst-icon-v2.png',
   scheme: 'renlyst',
   userInterfaceStyle: 'automatic',
   ios: {
     bundleIdentifier: isProduction ? 'com.renlyst.app' : 'com.renlyst.app.next',
-    buildNumber: '1',
+    buildNumber: '2',
     supportsTablet: true,
     requireFullScreen: false,
     infoPlist: {

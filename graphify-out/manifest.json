@@ -1,8 +1,8 @@
 {
   "app.config.ts": {
-    "mtime": 1784293888.1865852,
-    "ast_hash": "78f45f0f713b8006643f3a2cb3d32068",
-    "semantic_hash": "78f45f0f713b8006643f3a2cb3d32068"
+    "mtime": 1784424103.0166337,
+    "ast_hash": "adc82973c552d1e9f2119c05f73e83e0",
+    "semantic_hash": ""
   },
   "app/(tabs)/_layout.tsx": {
     "mtime": 1784349033.0120218,
@@ -40,9 +40,9 @@
     "semantic_hash": ""
   },
   "app/about.tsx": {
-    "mtime": 1784294566.7472837,
-    "ast_hash": "15b3ccbcc3a77a40366e0d40d1bb9aa2",
-    "semantic_hash": "15b3ccbcc3a77a40366e0d40d1bb9aa2"
+    "mtime": 1784424121.62876,
+    "ast_hash": "105dd3d8609df10652c15fea4e3f4424",
+    "semantic_hash": ""
   },
   "app/add.tsx": {
     "mtime": 1784294566.7605293,
@@ -510,8 +510,8 @@
     "semantic_hash": ""
   },
   "src/localization/copy.ts": {
-    "mtime": 1784341780.7290657,
-    "ast_hash": "67682f2926c5f38dad6ce2352a9dabf3",
+    "mtime": 1784424103.0188699,
+    "ast_hash": "e95b45f5509a8120a411819414d6241c",
     "semantic_hash": ""
   },
   "src/providers/AppProviders.tsx": {

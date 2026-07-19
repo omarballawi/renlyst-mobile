@@ -168,6 +168,9 @@ const arabicCopy: Record<string, string> = {
   'Providers & protected keys': 'المزوّدون والمفاتيح المحمية',
   'Backup & Data': 'النسخ الاحتياطي والبيانات',
   'About & safety': 'حول التطبيق والسلامة',
+  'INSTALLED BUILD': 'الإصدار المثبّت',
+  'Crash-fixed capture release · com.renlyst.app.next':
+    'إصدار مُصحّح لالتقاط العبوات · com.renlyst.app.next',
   'Learning reminders': 'تذكيرات التعلّم',
   'Show weak-drug reminders': 'إظهار تذكيرات الأدوية الضعيفة',
   'Appearance & language': 'المظهر واللغة',

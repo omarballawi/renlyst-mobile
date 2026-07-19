@@ -73,12 +73,12 @@ jobs:
           cp -R "$app_path" artifact/Payload/
           (
             cd artifact
-            ditto -c -k --sequesterRsrc --keepParent Payload Renlyst-Next-unsigned.ipa
-            shasum -a 256 Renlyst-Next-unsigned.ipa > Renlyst-Next-unsigned.ipa.sha256
-            shasum -a 256 -c Renlyst-Next-unsigned.ipa.sha256
+            ditto -c -k --sequesterRsrc --keepParent Payload Renlyst-Next-0.2.0-build-2-unsigned.ipa
+            shasum -a 256 Renlyst-Next-0.2.0-build-2-unsigned.ipa > Renlyst-Next-0.2.0-build-2-unsigned.ipa.sha256
+            shasum -a 256 -c Renlyst-Next-0.2.0-build-2-unsigned.ipa.sha256
           )
 
-          archive="artifact/Renlyst-Next-unsigned.ipa"
+          archive="artifact/Renlyst-Next-0.2.0-build-2-unsigned.ipa"
           unzip -t "$archive"
           info_plist="$(unzip -Z1 "$archive" 'Payload/*.app/Info.plist' | head -1)"
           if [[ -z "$info_plist" ]]; then
@@ -89,8 +89,8 @@ jobs:
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: renlyst-next-unsigned-ipa
+          name: renlyst-next-0.2.0-build-2-unsigned-ipa
           path: |
-            artifact/Renlyst-Next-unsigned.ipa
-            artifact/Renlyst-Next-unsigned.ipa.sha256
+            artifact/Renlyst-Next-0.2.0-build-2-unsigned.ipa
+            artifact/Renlyst-Next-0.2.0-build-2-unsigned.ipa.sha256
           if-no-files-found: error

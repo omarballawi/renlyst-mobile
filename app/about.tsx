@@ -1,12 +1,18 @@
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useLocale } from '@/localization/LocaleProvider';
 import { AppText, Icon, PressableScale, Screen } from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
 
 export default function AboutScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { t } = useLocale();
+  const appVersion = Constants.expoConfig?.version ?? 'unknown';
+  const buildVersion =
+    Constants.nativeBuildVersion ?? Constants.expoConfig?.ios?.buildNumber ?? 'unknown';
   return (
     <Screen safeBottom>
       <ScrollView contentContainerStyle={styles.content}>
@@ -29,6 +35,26 @@ export default function AboutScreen() {
               Learn safely. Keep ownership.
             </AppText>
           </View>
+        </View>
+
+        <View
+          testID="installed-build-identity"
+          accessible
+          accessibilityLabel={t('INSTALLED BUILD')}
+          style={[
+            styles.buildIdentity,
+            { borderColor: colors.aqua, backgroundColor: colors.aquaSoft },
+          ]}
+        >
+          <AppText variant="label" color={colors.aqua}>
+            INSTALLED BUILD
+          </AppText>
+          <AppText variant="heading" color={colors.ink}>
+            {`Renlyst Next ${appVersion} (${buildVersion})`}
+          </AppText>
+          <AppText variant="caption" color={colors.mutedInk}>
+            Crash-fixed capture release · com.renlyst.app.next
+          </AppText>
         </View>
 
         <View style={[styles.hero, { backgroundColor: colors.ink }]}>
@@ -92,6 +118,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  buildIdentity: {
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.xxs,
   },
   hero: { borderRadius: radii.xl, padding: spacing.xl, gap: spacing.sm },
   section: { gap: spacing.sm },
