@@ -171,8 +171,17 @@ const arabicCopy: Record<string, string> = {
   'INSTALLED BUILD': 'الإصدار المثبّت',
   'Crash-fixed capture release · com.renlyst.app.next':
     'إصدار مُصحّح لالتقاط العبوات · com.renlyst.app.next',
+  'Photo-first Gemini preview · com.renlyst.app.next':
+    'إصدار Gemini يبدأ بالصورة · com.renlyst.app.next',
   'Learning reminders': 'تذكيرات التعلّم',
   'Show weak-drug reminders': 'إظهار تذكيرات الأدوية الضعيفة',
+  Feedback: 'التغذية الراجعة',
+  'Haptic feedback': 'الاهتزاز اللمسي',
+  'Use light vibrations for capture, answers, completion, backup, and warnings.':
+    'استخدم اهتزازات خفيفة عند الالتقاط والإجابة والإكمال والنسخ الاحتياطي والتحذيرات.',
+  'Light sounds': 'أصوات خفيفة',
+  'Play subtle local sounds for success, answers, and session completion.':
+    'شغّل أصواتًا محلية هادئة للنجاح والإجابات وإكمال الجلسة.',
   'Appearance & language': 'المظهر واللغة',
   Theme: 'السمة',
   System: 'النظام',
@@ -513,6 +522,26 @@ const arabicCopy: Record<string, string> = {
     'يجب إدخال مفاتيح DeepSeek وOpenRouter مجددًا في أي تثبيت جديد. لا تُكتب مطلقًا في ملفات التصدير.',
   'DeepSeek can assemble an educational draft. Nothing is saved until you inspect and select its sections, and every saved value remains marked unverified.':
     'يمكن لـ DeepSeek إعداد مسودة تعليمية. لا يُحفظ شيء حتى تفحص أقسامها وتحددها، وتبقى كل قيمة محفوظة معلّمة كغير موثقة.',
+  'Add a medicine package image. Gemini vision reads the identity and fills the complete educational profile for you to review before saving.':
+    'أضف صورة لعبوة الدواء. تقرأ رؤية Gemini الهوية وتملأ الملف التعليمي الكامل لتراجعه قبل الحفظ.',
+  'Package image required': 'صورة العبوة مطلوبة',
+  'Use a clear front or ingredient-panel photo. Up to four resized images are sent through your configured Gemini model.':
+    'استخدم صورة واضحة لواجهة العبوة أو لوحة المكونات. تُرسل حتى أربع صور مصغّرة عبر نموذج Gemini الذي أعددته.',
+  REQUIRED: 'مطلوب',
+  'Using the saved package photo': 'استخدام صورة العبوة المحفوظة',
+  'Add new photos only if the printed ingredient is hard to read.':
+    'أضف صورًا جديدة فقط إذا كانت المادة الفعالة المطبوعة صعبة القراءة.',
+  'Saved medicine package photo': 'صورة عبوة الدواء المحفوظة',
+  'Reading package and building profile…': 'جارٍ قراءة العبوة وبناء الملف…',
+  'Generate full profile from image': 'إنشاء الملف الكامل من الصورة',
+  'Gemini read this package with low confidence. Check the identity carefully.':
+    'قرأ Gemini هذه العبوة بثقة منخفضة. تحقق من الهوية بعناية.',
+  'GEMINI VISION & FULL PROFILE': 'رؤية GEMINI والملف الكامل',
+  'Package photos are sent through OpenRouter only when you explicitly generate a full profile.':
+    'تُرسل صور العبوة عبر OpenRouter فقط عندما تطلب صراحةً إنشاء ملف كامل.',
+  'DEEPSEEK PRACTICE': 'تدريب DEEPSEEK',
+  'Used only when you explicitly request generated practice questions.':
+    'يُستخدم فقط عندما تطلب صراحةً إنشاء أسئلة تدريبية.',
   'DEEPSEEK LEARNING & GENERATION': 'التعلّم والإنشاء عبر DEEPSEEK',
   'DeepSeek model': 'نموذج DeepSeek',
   'Delete drug profile': 'حذف ملف الدواء',
@@ -579,6 +608,14 @@ const arabicCopy: Record<string, string> = {
   'FROM YOUR': 'من سجلاتك',
   'Generate an unverified AI draft for this profile':
     'أنشئ مسودة غير موثقة بالذكاء الاصطناعي لهذا الملف',
+  'Generate missing sections from a package image': 'أنشئ الأقسام الناقصة من صورة العبوة',
+  'Generate missing sections from photo': 'أنشئ الأقسام الناقصة من الصورة',
+  'Gemini reads a saved or new package image; selected fields stay unverified':
+    'يقرأ Gemini صورة عبوة محفوظة أو جديدة؛ وتبقى الحقول المحددة غير موثقة.',
+  'Add a package image; Gemini fills a complete unverified profile for review':
+    'أضف صورة العبوة؛ يملأ Gemini ملفًا كاملًا غير موثق لتراجعه.',
+  'Use a required package image to build a selectable Gemini profile':
+    'استخدم صورة عبوة مطلوبة لبناء ملف Gemini قابل للتحديد.',
   'Generate from your saved shifts, encounters, reviews, and library—then edit before sharing.':
     'أنشئ التقرير من المناوبات والحالات والمراجعات والمكتبة المحفوظة، ثم عدّله قبل المشاركة.',
   'Generate with AI': 'إنشاء بالذكاء الاصطناعي',

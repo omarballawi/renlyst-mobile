@@ -23,9 +23,26 @@ const variants: Record<TextVariant, TextStyle> = {
   label: { fontFamily: fonts.bodyBold, fontSize: 12, lineHeight: 17, letterSpacing: 0.5 },
 };
 
+const arabicLineHeights: Record<TextVariant, number> = {
+  display: 52,
+  title: 44,
+  heading: 34,
+  body: 30,
+  bodyStrong: 30,
+  caption: 25,
+  label: 23,
+};
+
 const arabicPattern = /[\u0600-\u06ff]/u;
 
-export function AppText({ variant = 'body', color, style, children, ...props }: AppTextProps) {
+export function AppText({
+  variant = 'body',
+  color,
+  style,
+  children,
+  numberOfLines,
+  ...props
+}: AppTextProps) {
   const { isRTL, language } = useLocale();
   const childArray = Children.toArray(children);
   const primitiveCopy = childArray.every(
@@ -45,6 +62,7 @@ export function AppText({ variant = 'body', color, style, children, ...props }: 
     )
     .join('');
   const usesArabic = arabicPattern.test(visibleText);
+  const usesArabicMetrics = isRTL || usesArabic;
   const variantStyle = variants[variant];
   const arabicWeight =
     variant === 'display' || variant === 'title' || variant === 'heading' || variant === 'label'
@@ -57,10 +75,16 @@ export function AppText({ variant = 'body', color, style, children, ...props }: 
       allowFontScaling
       maxFontSizeMultiplier={2.5}
       {...props}
+      numberOfLines={usesArabicMetrics ? undefined : numberOfLines}
       style={[
         variantStyle,
         isRTL && { textAlign: 'right' },
-        usesArabic && { fontFamily: arabicWeight, writingDirection: 'rtl', letterSpacing: 0 },
+        usesArabicMetrics && {
+          fontFamily: arabicWeight,
+          writingDirection: 'rtl',
+          letterSpacing: 0,
+          lineHeight: arabicLineHeights[variant],
+        },
         color ? { color } : null,
         style,
       ]}

@@ -103,11 +103,13 @@ async function prepareImages(
   ownerType: ImageOwnerType,
   ownerID: string,
   assets: readonly CaptureImageAsset[],
+  startOrdinal = 0,
 ): Promise<PreparedCaptureImage[]> {
   if (assets.length > 8) throw new Error('A profile can store at most eight package photos.');
   const prepared: PreparedCaptureImage[] = [];
   try {
-    for (const [ordinal, asset] of assets.entries()) {
+    for (const [index, asset] of assets.entries()) {
+      const ordinal = startOrdinal + index;
       prepared.push(
         await persistManipulatedImage(
           ownerType,
@@ -217,6 +219,42 @@ export class CaptureService {
             product.id,
           );
         }
+      });
+    } catch (error) {
+      rollbackPreparedImages(images);
+      throw error;
+    }
+  }
+
+  async appendDrugImages(drug: DrugBackup, assets: readonly CaptureImageAsset[]): Promise<void> {
+    if (assets.length === 0) {
+      await new DrugRepository(this.db).save(drug);
+      return;
+    }
+    const total = await this.db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM drug_images di
+       WHERE di.role = 'original' AND (
+         di.drug_id = ? OR di.product_id IN (
+           SELECT id FROM drug_products WHERE profile_id = ?
+         )
+       )`,
+      drug.id,
+      drug.id,
+    );
+    if ((total?.count ?? 0) + assets.length > 8) {
+      throw new Error('A profile can store at most eight package photos.');
+    }
+    const last = await this.db.getFirstAsync<{ ordinal: number | null }>(
+      `SELECT MAX(ordinal) AS ordinal FROM drug_images
+       WHERE drug_id = ? AND role = 'original'`,
+      drug.id,
+    );
+    const images = await prepareImages('drug', drug.id, assets, (last?.ordinal ?? -1) + 1);
+    try {
+      await runExclusiveTransaction(this.db, async (transaction) => {
+        await new DrugRepository(transaction).save(drug);
+        await insertPreparedImages(transaction, 'drug', drug.id, images);
+        await updatePhotoCaches(transaction, drug.id);
       });
     } catch (error) {
       rollbackPreparedImages(images);

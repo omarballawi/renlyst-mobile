@@ -6,6 +6,8 @@ import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import {
   defaultProviderConfiguration,
+  normalizeProviderConfiguration,
+  normalizeProviderSettingsSnapshot,
   ProviderCredentialStore,
   settingKeys,
   SettingsRepository,
@@ -310,10 +312,11 @@ function ProviderSettingsEditor({
         <View style={[styles.providerCard, { borderColor: colors.line }]}>
           <View>
             <AppText variant="label" color={colors.coral}>
-              OPENROUTER PACKAGE VISION
+              GEMINI VISION & FULL PROFILE
             </AppText>
             <AppText color={colors.mutedInk}>
-              Photos are sent only when you explicitly request recognition.
+              Package photos are sent through OpenRouter only when you explicitly generate a full
+              profile.
             </AppText>
           </View>
           <ProtectedField
@@ -357,10 +360,10 @@ function ProviderSettingsEditor({
         <View style={[styles.providerCard, { borderColor: colors.line }]}>
           <View>
             <AppText variant="label" color={colors.aqua}>
-              DEEPSEEK LEARNING & GENERATION
+              DEEPSEEK PRACTICE
             </AppText>
             <AppText color={colors.mutedInk}>
-              Used only for user-triggered drafts and practice generation.
+              Used only when you explicitly request generated practice questions.
             </AppText>
           </View>
           <ProtectedField
@@ -498,7 +501,7 @@ export default function ProviderSettingsScreen() {
       const deepSeek = await ProviderCredentialStore.has('deepSeek');
       const altibbi = await ProviderCredentialStore.has('altibbi');
       return {
-        configuration: { ...defaultProviderConfiguration, ...configuration },
+        configuration: normalizeProviderConfiguration(configuration),
         credentialStatus: { openRouter, deepSeek, altibbi },
       };
     },
@@ -532,7 +535,7 @@ export default function ProviderSettingsScreen() {
         </View>
       </Screen>
     );
-  return <ProviderSettingsEditor {...settings.data} />;
+  return <ProviderSettingsEditor {...normalizeProviderSettingsSnapshot(settings.data)} />;
 }
 
 const styles = StyleSheet.create({

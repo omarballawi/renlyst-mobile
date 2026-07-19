@@ -28,7 +28,7 @@ import {
   Screen,
 } from '@/ui/components';
 import { fonts, radii, spacing, useTheme } from '@/ui/theme';
-import { appHaptics } from '@/ui/feedback/haptics';
+import { useFeedback } from '@/ui/feedback/FeedbackProvider';
 
 function RatingButton({
   label,
@@ -74,6 +74,7 @@ function PracticeSessionContent({
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const { t } = useLocale();
+  const feedback = useFeedback();
   const [questions] = useState(initialQuestions);
   const [index, setIndex] = useState(0);
   const [response, setResponse] = useState('');
@@ -105,7 +106,7 @@ function PracticeSessionContent({
         correctCountRef.current += 1;
         setCorrectCount(correctCountRef.current);
       }
-      appHaptics.answerCommitted(variables.rating === 'Correct');
+      feedback.answerCommitted(variables.rating === 'Correct');
       await queryClient.invalidateQueries({ queryKey: drugQueryKeys.all });
     },
     onSettled: () => {
@@ -121,7 +122,7 @@ function PracticeSessionContent({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: learningQueryKeys.all });
-      appHaptics.sessionCompleted();
+      feedback.sessionCompleted();
       setFinished(true);
     },
     onSettled: () => {

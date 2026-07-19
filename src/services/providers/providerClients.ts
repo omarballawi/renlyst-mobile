@@ -424,6 +424,10 @@ const aiDrugDraftSchema = z
 
 export type PackageRecognition = z.infer<typeof recognitionSchema>;
 export type AIDrugDraft = z.infer<typeof aiDrugDraftSchema>;
+export type VisionDrugDraft = {
+  packageRecognition: PackageRecognition;
+  drugDraft: AIDrugDraft;
+};
 
 export function parsePackageRecognitionPayload(payload: unknown): PackageRecognition {
   return recognitionSchema.parse(payload);
@@ -721,6 +725,118 @@ ${packageText.trim().slice(0, 3000) || '(none)'}`;
     routes: confirmedIdentity?.route.trim() ? [confirmedIdentity.route.trim()] : draft.routes,
     chapterRaw: confirmedIdentity?.chapterRaw || draft.chapterRaw,
     drugClass: confirmedIdentity?.drugClass.trim() || draft.drugClass,
+  };
+}
+
+function ingredientIdentity(values: readonly string[]): string[] {
+  return values.map(normalized).filter(Boolean).sort();
+}
+
+function packageIngredientNames(recognition: PackageRecognition): string[] {
+  const components = recognition.ingredientComponents.map((component) => component.name);
+  if (components.length > 0) return components;
+  return recognition.scientificName
+    .split(/\s*\+\s*/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function assertMatchingPackageIdentity(
+  recognition: PackageRecognition,
+  expectedScientificName?: string,
+  expectedIngredients: readonly string[] = [],
+): void {
+  if (!expectedScientificName?.trim()) return;
+  const expected = ingredientIdentity(
+    expectedIngredients.length > 0 ? expectedIngredients : [expectedScientificName],
+  );
+  const recognized = ingredientIdentity(packageIngredientNames(recognition));
+  const overlaps = expected.some((item) =>
+    recognized.some(
+      (candidate) =>
+        candidate === item || candidate.startsWith(`${item} `) || item.startsWith(`${candidate} `),
+    ),
+  );
+  if (!overlaps) {
+    throw new Error(
+      `This package appears to contain ${recognition.scientificName || 'a different ingredient'}, not ${expectedScientificName}. Use a matching package image.`,
+    );
+  }
+}
+
+export async function generateGeminiVisionDrugDraft({
+  dataUrls,
+  apiKey,
+  model,
+  expectedScientificName,
+  expectedIngredients = [],
+  fetcher = fetch,
+}: {
+  dataUrls: readonly string[];
+  apiKey: string;
+  model: string;
+  expectedScientificName?: string;
+  expectedIngredients?: readonly string[];
+  fetcher?: FetchLike;
+}): Promise<VisionDrugDraft> {
+  const packageRecognition = await recognizePackageWithOpenRouter({
+    dataUrls,
+    apiKey,
+    model,
+    fetcher,
+  });
+  if (!packageRecognition.scientificName.trim()) {
+    throw new Error(
+      'Gemini could not read an active ingredient from this package. Add a clearer front or ingredient-panel photo.',
+    );
+  }
+  assertMatchingPackageIdentity(packageRecognition, expectedScientificName, expectedIngredients);
+
+  const confirmedName = expectedScientificName?.trim() || packageRecognition.scientificName.trim();
+  const identity = {
+    scientificName: confirmedName,
+    tradeNames: packageRecognition.tradeNames,
+    manufacturer: packageRecognition.manufacturer,
+    strengths: packageRecognition.marketedStrengthLabel
+      ? [packageRecognition.marketedStrengthLabel]
+      : [],
+    activeIngredients: packageIngredientNames(packageRecognition),
+    dosageForms: packageRecognition.dosageForm ? [packageRecognition.dosageForm] : [],
+    routes: packageRecognition.route ? [packageRecognition.route] : [],
+    country: packageRecognition.country,
+    visiblePackageText: packageRecognition.packageText.slice(0, 3_000),
+  };
+  const prompt = `Create a complete educational pharmacy profile draft for the medicine identity extracted from its package image. The following package identity is authoritative: ${JSON.stringify(identity)}. Keep scientificName exactly "${confirmedName}". Return one JSON object with this shape:
+{"scientificName":"","tradeNames":[],"chapterRaw":"Other","drugClass":"","activeIngredients":[],"dosageForms":[],"strengths":[],"routes":[],"indications":[],"mechanism":"","mechanismKeywords":[],"howToTake":"","foodInstruction":"","warnings":[],"contraindications":[],"interactions":[],"toxicity":"","renalCaution":"","hepaticCaution":"","pregnancyCaution":"","commonSideEffects":[],"seriousSideEffects":[],"halfLifeText":"","halfLifeHours":null,"halfLifeBandRaw":"Unknown","onsetText":"","onsetMinutes":null,"onsetBandRaw":"Unknown","durationText":"","durationHours":null,"durationBandRaw":"Unknown","dosingFrequencyRaw":"Unknown","timesPerDay":null,"prodrugStatusRaw":"Unknown","excretionRouteRaw":"Unknown","excretionNotes":"","counselingSentence":"","patientQuestions":[],"counselingHowToTakeArabic":"","counselingFoodArabic":"","patientFeelingsArabic":[],"seekHelpArabic":[],"missedDoseArabic":"","arabicExplanation":"","arabicMechanism":"","arabicCounseling":"","arabicMemoryStory":"","arabicImportantNote":"","mustKnow":[],"flashcards":[],"oneLineSummaryArabic":"","doseRegimens":[],"dosageFormGroups":[],"clinicalDoses":[],"interactionEntries":[],"adverseEffectEntries":[],"prodrugInfo":{},"eliminationInfo":{},"reproductiveSafety":{},"pharmacologyProfile":{}}.
+Use clear Modern Standard Arabic in every Arabic field when the underlying fact is available; do not transliterate English sentences. Never claim pharmacist verification. Do not invent sourceIDs or citations; all sourceIDs arrays must be empty. Use empty strings or arrays when uncertain. Separate package strengths from indication-specific dosing. Dose regimens must be indication- and population-specific and use only Fixed dose, mg/kg/dose, mg/kg/day, or mg/m². Preserve every active ingredient. Include clinically meaningful interaction and adverse-effect entries, but include incidence percentages only when reliably known. This is general educational content, never patient-specific advice.`;
+  const payload = await chatJSON({
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    apiKey,
+    model,
+    prompt,
+    fetcher,
+    maxTokens: 7_000,
+    system:
+      'Return valid JSON only. This is an unverified educational draft for pharmacist review. Keep package identity facts unchanged and never invent citations.',
+  });
+  const parsed = parseAIDrugDraftPayload(payload);
+  return {
+    packageRecognition,
+    drugDraft: {
+      ...parsed,
+      scientificName: confirmedName,
+      tradeNames:
+        packageRecognition.tradeNames.length > 0
+          ? packageRecognition.tradeNames
+          : parsed.tradeNames,
+      activeIngredients:
+        identity.activeIngredients.length > 0
+          ? identity.activeIngredients
+          : parsed.activeIngredients,
+      strengths: identity.strengths.length > 0 ? identity.strengths : parsed.strengths,
+      dosageForms: identity.dosageForms.length > 0 ? identity.dosageForms : parsed.dosageForms,
+      routes: identity.routes.length > 0 ? identity.routes : parsed.routes,
+    },
   };
 }
 

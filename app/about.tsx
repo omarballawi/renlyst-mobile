@@ -53,7 +53,7 @@ export default function AboutScreen() {
             {`Renlyst Next ${appVersion} (${buildVersion})`}
           </AppText>
           <AppText variant="caption" color={colors.mutedInk}>
-            Crash-fixed capture release · com.renlyst.app.next
+            Photo-first Gemini preview · com.renlyst.app.next
           </AppText>
         </View>
 

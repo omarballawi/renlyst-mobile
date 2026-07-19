@@ -14,6 +14,7 @@ import { drugQueryKeys } from '@/features/library/queries';
 import { useLocale } from '@/localization/LocaleProvider';
 import { AppText, Icon, PressableScale, PrimaryButton, Screen } from '@/ui/components';
 import { radii, spacing, useTheme } from '@/ui/theme';
+import { useFeedback } from '@/ui/feedback/FeedbackProvider';
 
 type BackupHistory = {
   lastExportAt: string | null;
@@ -33,6 +34,7 @@ export default function BackupScreen() {
   const queryClient = useQueryClient();
   const { colors } = useTheme();
   const { t } = useLocale();
+  const feedback = useFeedback();
   const serviceRef = useRef(new BackupService(db));
   const [preview, setPreview] = useState<BackupImportPreview | null>(null);
   const [mode, setMode] = useState<BackupRestoreMode>('merge');
@@ -103,6 +105,7 @@ export default function BackupScreen() {
         `Imported ${summary.counts.drugs} profiles, ${summary.counts.reviews} reviews, and ${summary.imageCount} images.`,
       );
       recordHistory({ lastRestoreAt: new Date().toISOString() });
+      feedback.backupCompleted();
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -126,7 +129,14 @@ export default function BackupScreen() {
       ),
       [
         { text: t('Cancel'), style: 'cancel' },
-        { text: t('Replace all data'), style: 'destructive', onPress: () => void restore() },
+        {
+          text: t('Replace all data'),
+          style: 'destructive',
+          onPress: () => {
+            feedback.destructiveConfirmed();
+            void restore();
+          },
+        },
       ],
     );
   };
@@ -156,6 +166,7 @@ export default function BackupScreen() {
         lastExportAt: new Date().toISOString(),
         lastExportKind: includesImages ? 'Complete JSON' : 'Lightweight JSON',
       });
+      feedback.backupCompleted();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The backup could not be exported.');
     } finally {
@@ -190,6 +201,7 @@ export default function BackupScreen() {
         lastExportAt: new Date().toISOString(),
         lastExportKind: isCSV ? 'Drug library CSV' : 'Training reports',
       });
+      feedback.backupCompleted();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The text export could not be created.');
     } finally {

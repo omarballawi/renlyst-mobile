@@ -37,7 +37,7 @@ import {
   Screen,
 } from '@/ui/components';
 import { fonts, radii, spacing, useTheme } from '@/ui/theme';
-import { appHaptics } from '@/ui/feedback/haptics';
+import { useFeedback } from '@/ui/feedback/FeedbackProvider';
 import {
   recognizePackageWithOpenRouter,
   type PackageRecognition,
@@ -52,6 +52,7 @@ export default function CaptureScreen() {
   const params = useLocalSearchParams<{ chapter?: string }>();
   const { colors } = useTheme();
   const { t } = useLocale();
+  const feedback = useFeedback();
   const [known, setKnown] = useState(true);
   const [scientificName, setScientificName] = useState('');
   const [brandName, setBrandName] = useState('');
@@ -189,7 +190,7 @@ export default function CaptureScreen() {
       return { destination, id };
     },
     onSuccess: async ({ destination, id }) => {
-      appHaptics.captureSaved();
+      feedback.captureSaved();
       await queryClient.invalidateQueries({ queryKey: drugQueryKeys.all });
       if (destination === 'open') router.replace(`/drug/${id}`);
       else if (destination === 'later') router.back();

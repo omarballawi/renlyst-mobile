@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DatabaseProvider } from '@/data/database';
 import { LocaleProvider } from '@/localization/LocaleProvider';
+import { FeedbackProvider } from '@/ui/feedback/FeedbackProvider';
 import { ThemeProvider } from '@/ui/theme';
 
 type AppProvidersProps = PropsWithChildren<{ fallback: React.ReactNode }>;
@@ -27,7 +28,9 @@ export function AppProviders({ children, fallback }: AppProvidersProps) {
           <Suspense fallback={fallback}>
             <DatabaseProvider>
               <ThemeProvider>
-                <LocaleProvider>{children}</LocaleProvider>
+                <LocaleProvider>
+                  <FeedbackProvider>{children}</FeedbackProvider>
+                </LocaleProvider>
               </ThemeProvider>
             </DatabaseProvider>
           </Suspense>

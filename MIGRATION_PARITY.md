@@ -35,13 +35,13 @@ The Swift repository at `../pharmashift` is the read-only behavioral and data au
 - [x] Capture known/unknown; camera/library; maximum eight images; crop/pan/zoom/rotation; compression and thumbnails; Save & Open/Later/Another.
 - [x] Profile topics: Brands & packages, Uses, Forms & dosing, Safety, Pharmacology, Counseling & Arabic, Sources/notes/mastery.
 - [x] Manual brand validation and ingredient inheritance; profile/brand deletion policies.
-- [x] Knowledge map, compare, shelf quest, trusted import, and AI generation with field-level exclusions.
+- [x] Knowledge map, compare, shelf quest, trusted import, and required-photo Gemini full-profile generation with field-level exclusions and transactional image persistence.
 - [x] Smart Session plus Scientific→Trade, Trade→Scientific, Class→Examples, Drug→Use, Drug→Warning, Image Quiz, Counseling, Weak Drugs, Due Review, System Practice, Case Practice.
 - [x] Exactly five questions per session; Daily Refresh, Mistake Vault, cached AI pack.
 - [x] Six mastery checks, classless five-check rule, review scheduling, field-level memory, streaks, badges, daily activities, reminders.
 - [x] Shift logs, encounters/privacy validator, report generation/editor/export.
 - [x] PK and safety scales, structured adverse effects/interactions/reproductive safety/ADME/dose regimens, educational dose calculator.
-- [x] Optional Altibbi, RxNorm, DailyMed, openFDA, OpenRouter package vision, and DeepSeek generation/practice providers.
+- [x] Optional Altibbi, RxNorm, DailyMed, openFDA, OpenRouter Gemini package/full-profile vision, and DeepSeek practice providers.
 - [x] Provider failures are actionable and never corrupt local records.
 
 ## Experience and release gates

@@ -109,29 +109,46 @@ function CrashRecovery({ report, onRetry, onReturnHome }: CrashRecoveryProps) {
       ]}
     >
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.line }]}>
-        <Text style={[styles.eyebrow, isRTL && styles.rtlText, { color: colors.coral }]}>
+        <Text style={[styles.eyebrow, isRTL && styles.rtlEyebrow, { color: colors.coral }]}>
           {t('RENLYST RECOVERY')}
         </Text>
         <Text
           accessibilityRole="header"
-          style={[styles.title, isRTL && styles.rtlText, { color: colors.ink }]}
+          style={[styles.title, isRTL && styles.rtlTitle, { color: colors.ink }]}
         >
           {t('Let’s get you back to learning.')}
         </Text>
-        <Text style={[styles.body, isRTL && styles.rtlText, { color: colors.mutedInk }]}>
+        <Text style={[styles.body, isRTL && styles.rtlBody, { color: colors.mutedInk }]}>
           {t(
             'Renlyst hit an unexpected interface error. Your library, images, and private learning records were not included in the diagnostic report.',
           )}
         </Text>
         <View style={styles.actions}>
-          <RecoveryButton label={t('Try again')} onPress={onRetry} primary colors={colors} />
-          <RecoveryButton label={t('Return home')} onPress={onReturnHome} colors={colors} />
+          <RecoveryButton
+            label={t('Try again')}
+            onPress={onRetry}
+            primary
+            colors={colors}
+            isRTL={isRTL}
+          />
+          <RecoveryButton
+            label={t('Return home')}
+            onPress={onReturnHome}
+            colors={colors}
+            isRTL={isRTL}
+          />
           <RecoveryButton
             label={copied ? t('Diagnostics copied') : t('Copy diagnostics')}
             onPress={copyDiagnostics}
             colors={colors}
+            isRTL={isRTL}
           />
-          <RecoveryButton label={t('Report a bug')} onPress={openBugReport} colors={colors} />
+          <RecoveryButton
+            label={t('Report a bug')}
+            onPress={openBugReport}
+            colors={colors}
+            isRTL={isRTL}
+          />
         </View>
       </View>
     </View>
@@ -143,11 +160,13 @@ function RecoveryButton({
   onPress,
   primary = false,
   colors,
+  isRTL,
 }: {
   label: string;
   onPress(): void;
   primary?: boolean;
   colors: typeof lightColors;
+  isRTL: boolean;
 }) {
   return (
     <Pressable
@@ -162,7 +181,13 @@ function RecoveryButton({
         },
       ]}
     >
-      <Text style={[styles.buttonLabel, { color: primary ? colors.coralText : colors.ink }]}>
+      <Text
+        style={[
+          styles.buttonLabel,
+          isRTL && styles.rtlButtonLabel,
+          { color: primary ? colors.coralText : colors.ink },
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -188,7 +213,26 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   body: { fontFamily: 'Manrope_400Regular', fontSize: 16, lineHeight: 24 },
-  rtlText: { textAlign: 'right', writingDirection: 'rtl', fontFamily: 'NotoSansArabic_400Regular' },
+  rtlEyebrow: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    fontFamily: 'NotoSansArabic_700Bold',
+    lineHeight: 24,
+    letterSpacing: 0,
+  },
+  rtlTitle: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    fontFamily: 'NotoSansArabic_700Bold',
+    lineHeight: 46,
+    letterSpacing: 0,
+  },
+  rtlBody: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    fontFamily: 'NotoSansArabic_400Regular',
+    lineHeight: 31,
+  },
   actions: { gap: spacing.sm, marginTop: spacing.xs },
   button: {
     minHeight: 48,
@@ -198,4 +242,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   buttonLabel: { fontFamily: 'Manrope_700Bold', fontSize: 15, lineHeight: 20 },
+  rtlButtonLabel: {
+    fontFamily: 'NotoSansArabic_700Bold',
+    lineHeight: 28,
+    textAlign: 'center',
+    writingDirection: 'rtl',
+  },
 });

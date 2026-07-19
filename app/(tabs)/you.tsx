@@ -19,6 +19,7 @@ import {
   type AppIconName,
 } from '@/ui/components';
 import { radii, spacing, useTheme, type ThemeMode } from '@/ui/theme';
+import { useFeedback } from '@/ui/feedback/FeedbackProvider';
 
 function SettingRow({
   icon,
@@ -106,6 +107,7 @@ export default function YouScreen() {
   const router = useRouter();
   const theme = useTheme();
   const locale = useLocale();
+  const feedback = useFeedback();
   const queryClient = useQueryClient();
   const learningRepository = useLearningRepository();
   const summary = useLibrarySummary();
@@ -292,6 +294,48 @@ export default function YouScreen() {
               value={profile?.weakDrugRemindersEnabled ?? true}
               disabled={reminders.isPending}
               onValueChange={(value) => reminders.mutate(value)}
+              trackColor={{ true: theme.colors.aqua }}
+            />
+          </View>
+        </View>
+
+        <View style={styles.preferences}>
+          <AppText variant="heading" color={theme.colors.ink}>
+            Feedback
+          </AppText>
+          <View style={[styles.reminderRow, { borderColor: theme.colors.line }]}>
+            <View style={styles.reminderCopy}>
+              <AppText variant="bodyStrong" color={theme.colors.ink}>
+                Haptic feedback
+              </AppText>
+              <AppText variant="caption" color={theme.colors.mutedInk}>
+                Use light vibrations for capture, answers, completion, backup, and warnings.
+              </AppText>
+            </View>
+            <Switch
+              accessibilityLabel={locale.t('Haptic feedback')}
+              value={feedback.preferences.hapticsEnabled}
+              onValueChange={(hapticsEnabled) =>
+                void feedback.setPreferences({ ...feedback.preferences, hapticsEnabled })
+              }
+              trackColor={{ true: theme.colors.aqua }}
+            />
+          </View>
+          <View style={[styles.reminderRow, { borderColor: theme.colors.line }]}>
+            <View style={styles.reminderCopy}>
+              <AppText variant="bodyStrong" color={theme.colors.ink}>
+                Light sounds
+              </AppText>
+              <AppText variant="caption" color={theme.colors.mutedInk}>
+                Play subtle local sounds for success, answers, and session completion.
+              </AppText>
+            </View>
+            <Switch
+              accessibilityLabel={locale.t('Light sounds')}
+              value={feedback.preferences.soundEffectsEnabled}
+              onValueChange={(soundEffectsEnabled) =>
+                void feedback.setPreferences({ ...feedback.preferences, soundEffectsEnabled })
+              }
               trackColor={{ true: theme.colors.aqua }}
             />
           </View>

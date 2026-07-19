@@ -8,9 +8,20 @@ type SettingRow = { value_json: string };
 export const settingKeys = {
   themeMode: 'appearance.theme-mode',
   language: 'localization.language',
+  feedbackPreferences: 'feedback.preferences',
   providerConfiguration: 'providers.configuration',
   backupHistory: 'backup.history',
 } as const;
+
+export type FeedbackPreferences = {
+  hapticsEnabled: boolean;
+  soundEffectsEnabled: boolean;
+};
+
+export const defaultFeedbackPreferences: FeedbackPreferences = {
+  hapticsEnabled: true,
+  soundEffectsEnabled: true,
+};
 
 export type ProviderConfiguration = {
   altibbiEnabled: boolean;
@@ -29,6 +40,59 @@ export const defaultProviderConfiguration: ProviderConfiguration = {
   openRouterModel: 'google/gemini-2.5-flash',
   deepSeekModel: 'deepseek-v4-flash',
 };
+
+export type ProviderSettingsSnapshot = {
+  configuration: ProviderConfiguration;
+  credentialStatus: Record<ProviderCredential, boolean>;
+};
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+export function normalizeProviderConfiguration(value: unknown): ProviderConfiguration {
+  const candidate = objectValue(value);
+  return {
+    altibbiEnabled:
+      typeof candidate.altibbiEnabled === 'boolean'
+        ? candidate.altibbiEnabled
+        : defaultProviderConfiguration.altibbiEnabled,
+    rxNormEnabled:
+      typeof candidate.rxNormEnabled === 'boolean'
+        ? candidate.rxNormEnabled
+        : defaultProviderConfiguration.rxNormEnabled,
+    dailyMedEnabled:
+      typeof candidate.dailyMedEnabled === 'boolean'
+        ? candidate.dailyMedEnabled
+        : defaultProviderConfiguration.dailyMedEnabled,
+    openFDAEnabled:
+      typeof candidate.openFDAEnabled === 'boolean'
+        ? candidate.openFDAEnabled
+        : defaultProviderConfiguration.openFDAEnabled,
+    openRouterModel:
+      typeof candidate.openRouterModel === 'string' && candidate.openRouterModel.trim()
+        ? candidate.openRouterModel
+        : defaultProviderConfiguration.openRouterModel,
+    deepSeekModel:
+      typeof candidate.deepSeekModel === 'string' && candidate.deepSeekModel.trim()
+        ? candidate.deepSeekModel
+        : defaultProviderConfiguration.deepSeekModel,
+  };
+}
+
+export function normalizeProviderSettingsSnapshot(value: unknown): ProviderSettingsSnapshot {
+  const candidate = objectValue(value);
+  const configuration = normalizeProviderConfiguration(candidate.configuration ?? candidate);
+  const status = objectValue(candidate.credentialStatus);
+  return {
+    configuration,
+    credentialStatus: {
+      openRouter: status.openRouter === true,
+      deepSeek: status.deepSeek === true,
+      altibbi: status.altibbi === true,
+    },
+  };
+}
 
 export class SettingsRepository {
   constructor(private readonly db: SQLiteDatabase) {}

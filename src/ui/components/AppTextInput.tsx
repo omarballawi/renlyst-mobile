@@ -7,13 +7,23 @@ import { fonts } from '@/ui/theme';
 const arabicPattern = /[\u0600-\u06ff]/u;
 
 export const AppTextInput = forwardRef<NativeTextInput, TextInputProps>(function AppTextInput(
-  { accessibilityHint, accessibilityLabel, placeholder, style, value, defaultValue, ...props },
+  {
+    accessibilityHint,
+    accessibilityLabel,
+    placeholder,
+    style,
+    value,
+    defaultValue,
+    multiline,
+    ...props
+  },
   ref,
 ) {
   const { isRTL, t } = useLocale();
   const translatedPlaceholder = typeof placeholder === 'string' ? t(placeholder) : placeholder;
   const visibleText = value ?? defaultValue ?? translatedPlaceholder ?? '';
   const usesArabic = arabicPattern.test(visibleText);
+  const usesArabicMetrics = isRTL || usesArabic;
   const localeStyle: TextStyle | null =
     isRTL || usesArabic
       ? {
@@ -26,6 +36,7 @@ export const AppTextInput = forwardRef<NativeTextInput, TextInputProps>(function
     <NativeTextInput
       {...props}
       ref={ref}
+      multiline={multiline}
       allowFontScaling
       maxFontSizeMultiplier={2.5}
       accessibilityHint={
@@ -40,7 +51,16 @@ export const AppTextInput = forwardRef<NativeTextInput, TextInputProps>(function
       style={[
         style,
         localeStyle,
-        usesArabic ? { fontFamily: fonts.arabic, letterSpacing: 0 } : null,
+        usesArabicMetrics
+          ? {
+              fontFamily: fonts.arabic,
+              letterSpacing: 0,
+              lineHeight: 30,
+              paddingTop: 12,
+              paddingBottom: 14,
+              textAlignVertical: multiline ? 'top' : 'center',
+            }
+          : null,
       ]}
     />
   );

@@ -77,7 +77,7 @@ export default function LibraryToolsScreen() {
           />
           <Tool
             title="Generate with AI"
-            detail="Build a selectable DeepSeek draft that stays marked unverified"
+            detail="Use a required package image to build a selectable Gemini profile"
             icon="practice"
             onPress={() => router.push('/import/ai')}
           />

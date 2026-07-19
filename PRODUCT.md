@@ -18,6 +18,7 @@ An active-ingredient profile owns clinical knowledge. Many marketed brand produc
 4. Practice active recall in exactly five-question sessions across every supported mode.
 5. Record shifts and privacy-safe encounters, then generate editable training reports.
 6. Import, export, and recover all local data without a hosted account.
+7. Generate a complete unverified English/Arabic learning profile from a required medicine package image, without manually filling identity fields first.
 
 ## Navigation
 
@@ -34,4 +35,6 @@ An active-ingredient profile owns clinical knowledge. Many marketed brand produc
 - Every imported value is preserved, including fields the current UI does not yet render.
 - Arabic, UTF-8, RTL, accessibility, dark mode, and Reduce Motion are release gates.
 - API credentials are protected device settings and are never included in backups.
+- Gemini package generation is explicit and photo-first; selected photos are resized before provider transfer, and generated facts remain unverified until reviewed and saved.
+- Haptics and subtle local sounds are optional, independently configurable feedback—not learning rewards.
 - Renlyst is educational software. Clinical tools show equations, assumptions, sources, and caution states.

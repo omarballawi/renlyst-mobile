@@ -60,6 +60,7 @@ Banned: pure black/white, pharmacy green as brand color, purple/cyan gradients, 
 - Page/hero spring: stiffness 60, damping 18.
 - Animate transform and opacity only; do not animate layout dimensions.
 - Haptics are limited to capture, answer commitment, completion, destructive confirmation, and backup completion.
+- Short local sounds may accompany capture/profile-generation success, answer feedback, backup completion, and session completion. They honor silent mode, stay low-volume, and can be disabled separately from haptics.
 - Every animation uses `ReduceMotion.System`; Reduce Motion produces immediate state changes without lost meaning.
 - No bounce, elastic, perpetual decoration, or celebratory particles.
 
@@ -97,6 +98,8 @@ Banned: pure black/white, pharmacy green as brand color, purple/cyan gradients, 
 - Loading, empty, error, offline, denied-permission, and destructive states are designed inline.
 
 ## Last updated
+
+2026-07-19: full-profile generation now begins with required package imagery and a compact Gemini identity result before selectable unverified sections. Arabic typography uses Arabic-specific line metrics and avoids inherited line clamps so headings, rows, inputs, and crash recovery copy render without vertical clipping at large text sizes. Feedback preferences independently control limited haptics and subtle local sounds.
 
 2026-07-18: completed the image-everywhere pass so package evidence is visible before navigation across primary and secondary library, practice, encounter, import, relationship, and clinical surfaces. Compare, knowledge map, shelf quest, and refresh retain distinct compositions rather than repeating a generic card template; Arabic labels and controls wrap inside the iPhone 16 Pro Max viewport.
 

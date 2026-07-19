@@ -12,7 +12,9 @@ This is the durable handoff for the standalone React Native/Expo project at `C:\
 ## Technical baseline
 
 - Expo SDK 57, React Native 0.86, TypeScript, Expo Router, SQLite, React Query, and pnpm 11.9.0.
-- Preview identity: display name `Renlyst Next`, bundle/package `com.renlyst.app.next`, marketing version `0.2.0`, native build number `2`. A production switch uses `RENLYST_APP_VARIANT=production` and must not happen for a preview. Every published preview must increment both values and use a versioned IPA filename so sideloaded builds cannot be confused.
+- Preview identity: display name `Renlyst Next`, bundle/package `com.renlyst.app.next`, marketing version `0.3.0`, native build number `3`. A production switch uses `RENLYST_APP_VARIANT=production` and must not happen for a preview. Every published preview must increment both values and use a versioned IPA filename so sideloaded builds cannot be confused.
+- Full AI profile generation is photo-first: a saved or newly selected package image is required, Gemini vision through the protected OpenRouter configuration establishes package identity, and every populated clinical/Arabic section remains unverified until the user selects and saves it. New photos append transactionally and never delete existing package evidence.
+- Haptics and short local UI sounds are independently configurable on You. Sounds honor silent mode, do not record, do not play in the background, and mix without interrupting other audio.
 - Verification: `pnpm run release:verify` runs TypeScript, zero-warning ESLint, Jest, Prettier, Expo Doctor, and fresh iOS/Android bundle exports.
 - Device-only limits must be recorded truthfully: physical iPhone install, a real Swift backup on-device, screen-reader/large-text/reduce-motion/denied-permission passes, and Maestro simulator/device execution are not implied by web or CI success.
 
@@ -50,7 +52,7 @@ The recovery surface lets a user retry, return home, copy the safe report, or ma
 ## Release procedure
 
 1. Make and commit all source, graph, documentation, and plugin changes. Keep `artifacts/` local and ignored.
-2. Run `pnpm run release:verify` locally.
+2. Run `pnpm run release:verify` locally unless the release owner explicitly defers quality and device acceptance to a later pass; record any deferral truthfully in the release notes.
 3. Push the final commit and manually dispatch `.github/workflows/quality-and-unsigned-ios.yml`. Quality/export verification stays local; the manual macOS workflow performs only the unsigned device build, archive verification, and artifact upload.
 4. Download the IPA from that exact run, verify `Payload/*.app/Info.plist`, and generate its SHA-256 file.
 5. Publish a public prerelease with the IPA and checksum. Release notes must say it uses `com.renlyst.app.next`, is unsigned and needs sideloading (for example AltStore), and is non-production/pre-release software.

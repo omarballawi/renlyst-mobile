@@ -6,14 +6,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: isProduction ? 'Renlyst' : 'Renlyst Next',
   slug: 'renlyst',
-  version: '0.2.0',
+  version: '0.3.0',
   orientation: 'portrait',
   icon: './assets/brand/renlyst-icon-v2.png',
   scheme: 'renlyst',
   userInterfaceStyle: 'automatic',
   ios: {
     bundleIdentifier: isProduction ? 'com.renlyst.app' : 'com.renlyst.app.next',
-    buildNumber: '2',
+    buildNumber: '3',
     supportsTablet: true,
     requireFullScreen: false,
     infoPlist: {
@@ -55,6 +55,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     ['expo-sqlite', { enableFTS: true }],
     'expo-sharing',
+    [
+      'expo-audio',
+      {
+        microphonePermission: false,
+        recordAudioAndroid: false,
+        enableBackgroundPlayback: false,
+        enableBackgroundRecording: false,
+      },
+    ],
     [
       'expo-secure-store',
       {

@@ -111,7 +111,7 @@ export default function AddHubScreen() {
           <AddRoute
             icon="practice"
             title="Generate a full profile"
-            detail="Create an experimental AI draft with explicit unverified-field review"
+            detail="Add a package image; Gemini fills a complete unverified profile for review"
             tint={colors.coral}
             onPress={() => router.replace('/import/ai')}
           />

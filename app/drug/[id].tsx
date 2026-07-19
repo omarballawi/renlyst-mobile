@@ -883,7 +883,7 @@ export default function DrugProfileScreen() {
           </PressableScale>
           <PressableScale
             accessibilityRole="button"
-            accessibilityLabel="Generate an unverified AI draft for this profile"
+            accessibilityLabel="Generate missing sections from a package image"
             onPress={() =>
               router.push(
                 `/import/ai?id=${encodeURIComponent(id)}&name=${encodeURIComponent(profile.scientificName)}`,
@@ -893,10 +893,10 @@ export default function DrugProfileScreen() {
           >
             <View style={styles.topicCopy}>
               <AppText variant="bodyStrong" color={colors.ink}>
-                Generate missing sections with AI
+                Generate missing sections from photo
               </AppText>
               <AppText variant="caption" color={colors.mutedInk}>
-                Preview and select a DeepSeek draft; all saved fields stay unverified
+                Gemini reads a saved or new package image; selected fields stay unverified
               </AppText>
             </View>
             <Icon name="chevron" color={colors.coral} size={18} />
