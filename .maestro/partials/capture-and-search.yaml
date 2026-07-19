@@ -9,12 +9,24 @@ appId: com.renlyst.app.next
 - tapOn: 'Open fast capture'
 - tapOn:
     id: 'capture-active-ingredient'
+- waitForAnimationToEnd:
+    timeout: 5000
 - setClipboard: 'Furosemide'
 - pasteText
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Furosemide'
+    timeout: 10000
 - tapOn:
     id: 'capture-brand'
+- waitForAnimationToEnd:
+    timeout: 5000
 - setClipboard: 'Lasix'
 - pasteText
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Lasix'
+    timeout: 10000
 - tapOn:
     id: 'capture-save-open'
     retryTapIfNoChange: true

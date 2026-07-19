@@ -335,6 +335,9 @@ export default function CaptureScreen() {
                   placeholder="e.g. furosemide"
                   placeholderTextColor={colors.mutedInk}
                   autoCapitalize="words"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  textContentType="none"
                   style={[
                     styles.input,
                     {
@@ -378,6 +381,10 @@ export default function CaptureScreen() {
               onChangeText={setBrandName}
               placeholder="e.g. Lasix"
               placeholderTextColor={colors.mutedInk}
+              autoCapitalize="words"
+              autoCorrect={false}
+              spellCheck={false}
+              textContentType="none"
               style={[
                 styles.input,
                 { color: colors.ink, borderColor: colors.line, backgroundColor: colors.surface },

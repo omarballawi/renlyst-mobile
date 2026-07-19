@@ -567,7 +567,7 @@
       "label": "styles",
       "file_type": "code",
       "source_file": "app/capture.tsx",
-      "source_location": "L756",
+      "source_location": "L763",
       "_origin": "ast",
       "id": "app_capture_styles",
       "community": 12,
@@ -14696,7 +14696,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/capture.tsx",
-      "source_location": "L756",
+      "source_location": "L763",
       "weight": 1.0,
       "source": "app_capture",
       "target": "app_capture_styles",
@@ -47713,5 +47713,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8f233f0d6d537f48ba552d2c88b9ce506114c9f2"
+  "built_at_commit": "1bbdf5aa0b84343f657c6ec89e36e85ba6b4118d"
 }

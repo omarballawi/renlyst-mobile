@@ -16,6 +16,7 @@ name: Practice always opens as a five-question session
 - assertVisible: 'Close practice session'
 - tapOn: 'Your answer'
 - inputText: 'Furosemide'
+- hideKeyboard
 - tapOn: 'Check answer'
 - extendedWaitUntil:
     visible: 'Next question'
@@ -28,11 +29,13 @@ name: Practice always opens as a five-question session
 - assertVisible: 'Question 3 of 5.*'
 - tapOn: 'Your answer'
 - inputText: 'Lasix'
+- hideKeyboard
 - tapOn: 'Check answer'
 - tapOn: 'Next question'
 - assertVisible: 'Question 4 of 5.*'
 - tapOn: 'Your answer'
 - inputText: 'Furosemide'
+- hideKeyboard
 - tapOn: 'Check answer'
 - tapOn: 'Next question'
 - assertVisible: 'Question 5 of 5.*'
