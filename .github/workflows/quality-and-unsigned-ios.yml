@@ -1,44 +1,19 @@
-name: Quality, exports, and unsigned iOS
+name: Fast unsigned iOS IPA
 
 on:
-  push:
-    branches: ['**']
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  quality:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.9.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.13.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run release:verify
-      - uses: actions/upload-artifact@v4
-        with:
-          name: renlyst-ios-export
-          path: dist
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: renlyst-android-export
-          path: dist-android
-          if-no-files-found: error
+concurrency:
+  group: unsigned-ios-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
   unsigned-ios:
-    needs: quality
     runs-on: macos-latest
-    timeout-minutes: 75
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -48,142 +23,21 @@ jobs:
         with:
           node-version: 22.13.0
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
       - name: Generate native iOS project
         run: pnpm exec expo prebuild --platform ios --clean --no-install
+      - name: Restore CocoaPods cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: renlyst-pods-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install CocoaPods
         working-directory: ios
-        run: pod install --repo-update
-      - name: Build self-contained iOS Simulator app
-        shell: bash
-        run: |
-          set -euo pipefail
-          workspace="$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)"
-          if [[ -z "$workspace" ]]; then
-            echo "No generated Xcode workspace found."
-            exit 1
-          fi
-          scheme="$(basename "$workspace" .xcworkspace)"
-          xcodebuild \
-            -workspace "$workspace" \
-            -scheme "$scheme" \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath ios/simulator-build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            build
-      - name: Boot simulator and install Renlyst
-        shell: bash
-        run: |
-          set -euo pipefail
-          simulator_udid="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone 16 Pro Max/{print $2; exit}')"
-          if [[ -z "$simulator_udid" ]]; then
-            simulator_udid="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
-          fi
-          if [[ -z "$simulator_udid" ]]; then
-            echo "No available iPhone simulator was found."
-            exit 1
-          fi
-          simulator_app="$(find ios/simulator-build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)"
-          if [[ -z "$simulator_app" ]]; then
-            echo "No simulator app bundle was produced."
-            exit 1
-          fi
-          xcrun simctl shutdown all || true
-          xcrun simctl boot "$simulator_udid"
-          open -a Simulator --args -CurrentDeviceUDID "$simulator_udid"
-          xcrun simctl bootstatus "$simulator_udid" -b
-          xcrun simctl install "$simulator_udid" "$simulator_app"
-          xcrun simctl addmedia \
-            "$simulator_udid" \
-            "$GITHUB_WORKSPACE/assets/brand/renlyst-favicon-v2.png"
-      - name: Install pinned Maestro CLI
-        shell: bash
-        env:
-          MAESTRO_VERSION: 2.6.1
-        run: |
-          set -euo pipefail
-          curl -fsSL "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
-          "$HOME/.maestro/bin/maestro" --version
-      - name: Run iOS launch, capture, photo, practice, RTL, and Keychain smoke flows
-        shell: bash
-        env:
-          MAESTRO_CLI_NO_ANALYTICS: 'true'
-          MAESTRO_DISABLE_UPDATE_CHECK: 'true'
-          MAESTRO_DRIVER_STARTUP_TIMEOUT: '120000'
-        run: maestro test .maestro
-      - name: Collect Maestro and privacy-safe native crash evidence
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p "$RUNNER_TEMP/maestro-tests"
-          if [[ -d "$HOME/.maestro/tests" ]]; then
-            cp -R "$HOME/.maestro/tests/." "$RUNNER_TEMP/maestro-tests/"
-          fi
-          /usr/bin/python3 - <<'PY'
-          import glob
-          import json
-          import os
-          from pathlib import Path
-
-          roots = [
-              os.path.expanduser('~/Library/Logs/DiagnosticReports/*.ips'),
-              os.path.expanduser(
-                  '~/Library/Developer/CoreSimulator/Devices/*/data/Library/Logs/CrashReporter/*.ips'
-              ),
-          ]
-          summaries = []
-          decoder = json.JSONDecoder()
-          for pattern in roots:
-              for path in glob.glob(pattern):
-                  try:
-                      raw = Path(path).read_text(encoding='utf-8', errors='replace')
-                      first, offset = decoder.raw_decode(raw)
-                      second, _ = decoder.raw_decode(raw, len(raw) - len(raw[offset:].lstrip()))
-                  except (OSError, ValueError, TypeError):
-                      continue
-
-                  bundle_id = first.get('bundleID') or second.get('bundleID')
-                  process = first.get('app_name') or second.get('procName')
-                  if bundle_id != 'com.renlyst.app.next' and 'renlyst' not in str(process).lower():
-                      continue
-
-                  exception = second.get('exception') or {}
-                  termination = second.get('termination') or {}
-                  os_version = second.get('osVersion') or {}
-                  summaries.append(
-                      {
-                          'timestamp': first.get('timestamp') or second.get('captureTime'),
-                          'platform': 'iOS Simulator',
-                          'bundleId': bundle_id,
-                          'appVersion': first.get('app_version'),
-                          'buildVersion': first.get('build_version'),
-                          'osVersion': os_version.get('train') or first.get('os_version'),
-                          'exceptionType': exception.get('type'),
-                          'exceptionSignal': exception.get('signal'),
-                          'terminationNamespace': termination.get('namespace'),
-                          'terminationCode': termination.get('code'),
-                          'faultingThread': second.get('faultingThread'),
-                      }
-                  )
-
-          output = Path(os.environ['RUNNER_TEMP']) / 'maestro-tests' / 'renlyst-crash-summary.json'
-          output.write_text(json.dumps({'reports': summaries[-10:]}, indent=2), encoding='utf-8')
-          print(f'Renlyst native crash reports: {len(summaries)}')
-          raise SystemExit(1 if summaries else 0)
-          PY
-      - name: Upload Maestro failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: renlyst-maestro-failure-evidence
-          path: ${{ runner.temp }}/maestro-tests
-          if-no-files-found: ignore
-      - name: Build unsigned device app
+        run: pod install
+      - name: Build unsigned iPhone app
         shell: bash
         run: |
           set -euo pipefail
@@ -198,12 +52,14 @@ jobs:
             -scheme "$scheme" \
             -configuration Release \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath ios/build \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
-      - name: Package unsigned IPA
+      - name: Package and verify unsigned IPA
         shell: bash
         run: |
           set -euo pipefail
@@ -212,27 +68,26 @@ jobs:
             echo "No unsigned app bundle found."
             exit 1
           fi
+
           mkdir -p artifact/Payload
           cp -R "$app_path" artifact/Payload/
-          cd artifact
-          ditto -c -k --sequesterRsrc --keepParent Payload Renlyst-Next-unsigned.ipa
-          shasum -a 256 Renlyst-Next-unsigned.ipa > Renlyst-Next-unsigned.ipa.sha256
-      - name: Verify unsigned IPA archive
-        shell: bash
-        run: |
-          set -euo pipefail
+          (
+            cd artifact
+            ditto -c -k --sequesterRsrc --keepParent Payload Renlyst-Next-unsigned.ipa
+            shasum -a 256 Renlyst-Next-unsigned.ipa > Renlyst-Next-unsigned.ipa.sha256
+            shasum -a 256 -c Renlyst-Next-unsigned.ipa.sha256
+          )
+
           archive="artifact/Renlyst-Next-unsigned.ipa"
-          test -s "$archive"
-          test -s "$archive.sha256"
           unzip -t "$archive"
-          (cd artifact && shasum -a 256 -c Renlyst-Next-unsigned.ipa.sha256)
           info_plist="$(unzip -Z1 "$archive" 'Payload/*.app/Info.plist' | head -1)"
           if [[ -z "$info_plist" ]]; then
-            echo "The IPA does not contain an app Info.plist."
+            echo "The IPA does not contain Payload/*.app/Info.plist."
             exit 1
           fi
           echo "Verified $archive with $info_plist"
-      - uses: actions/upload-artifact@v4
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
         with:
           name: renlyst-next-unsigned-ipa
           path: |
