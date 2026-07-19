@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { SaveFormat } from 'expo-image-manipulator';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import {
 
 import { useLocale } from '@/localization/LocaleProvider';
 import { editorResizeActions } from '@/features/capture/imagePipeline';
+import { manipulateImage } from '@/features/capture/manipulateImage';
 import { AppText, PressableScale, PrimaryButton } from '@/ui/components';
 import { useReducedMotion } from '@/ui/motion/useReducedMotion';
 import { radii, spacing, useTheme } from '@/ui/theme';
@@ -73,7 +74,7 @@ function ImageEditor({
   useEffect(() => {
     if (initialResizeActions.length === 0) return;
     let active = true;
-    void manipulateAsync(asset.uri, initialResizeActions, {
+    void manipulateImage(asset.uri, initialResizeActions, {
       compress: 0.92,
       format: SaveFormat.JPEG,
     })
@@ -148,7 +149,7 @@ function ImageEditor({
     if (!source || working) return;
     setWorking(true);
     try {
-      const result = await manipulateAsync(source.uri, [{ rotate: 90 }], {
+      const result = await manipulateImage(source.uri, [{ rotate: 90 }], {
         compress: 1,
         format: SaveFormat.JPEG,
       });
@@ -168,9 +169,15 @@ function ImageEditor({
 
   const saveCrop = async () => {
     if (!source || working) return;
+    const current = transformRef.current;
+    // Persistence already applies the same centered 4:3 crop. Avoid a second
+    // native render when the student accepted the default frame unchanged.
+    if (current.x === 0 && current.y === 0 && current.zoom === 1) {
+      onSave(source);
+      return;
+    }
     setWorking(true);
     try {
-      const current = transformRef.current;
       const displayScale = baseScale * current.zoom;
       const cropWidth = Math.min(imageWidth, viewportWidth / displayScale);
       const cropHeight = Math.min(imageHeight, viewportHeight / displayScale);
@@ -190,7 +197,7 @@ function ImageEditor({
             current.y / displayScale,
         ),
       );
-      const result = await manipulateAsync(
+      const result = await manipulateImage(
         source.uri,
         [
           {

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { File } from 'expo-file-system';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -25,6 +25,7 @@ import {
 import { chapters, quickClasses, type DrugChapter } from '@/domain/drugs/chapters';
 import { CaptureService } from '@/features/capture/captureService';
 import { ImageEditorModal } from '@/features/capture/ImageEditorModal';
+import { manipulateImage } from '@/features/capture/manipulateImage';
 import { drugQueryKeys } from '@/features/library/queries';
 import { useLocale } from '@/localization/LocaleProvider';
 import {
@@ -88,7 +89,7 @@ export default function CaptureScreen() {
       ]);
       const dataUrls = await Promise.all(
         assets.slice(0, 4).map(async (asset) => {
-          const resized = await manipulateAsync(asset.uri, [{ resize: { width: 1400 } }], {
+          const resized = await manipulateImage(asset.uri, [{ resize: { width: 1400 } }], {
             compress: 0.72,
             format: SaveFormat.JPEG,
           });

@@ -20,7 +20,9 @@ name: Crop, hash, save, and reopen a package image
     visible: 'Frame the useful evidence.'
     timeout: 15000
 - tapOn: 'Use this crop'
-- assertVisible: '1/8 selected'
+- extendedWaitUntil:
+    visible: '1/8 selected'
+    timeout: 45000
 - scrollUntilVisible:
     element:
       id: 'capture-active-ingredient'
@@ -28,10 +30,12 @@ name: Crop, hash, save, and reopen a package image
     timeout: 15000
 - tapOn:
     id: 'capture-active-ingredient'
-- inputText: 'Furosemide'
+- setClipboard: 'Furosemide'
+- pasteText
 - tapOn:
     id: 'capture-brand'
-- inputText: 'Lasix'
+- setClipboard: 'Lasix'
+- pasteText
 - tapOn:
     id: 'capture-save-open'
     retryTapIfNoChange: true

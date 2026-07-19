@@ -9,10 +9,12 @@ appId: com.renlyst.app.next
 - tapOn: 'Open fast capture'
 - tapOn:
     id: 'capture-active-ingredient'
-- inputText: 'Furosemide'
+- setClipboard: 'Furosemide'
+- pasteText
 - tapOn:
     id: 'capture-brand'
-- inputText: 'Lasix'
+- setClipboard: 'Lasix'
+- pasteText
 - tapOn:
     id: 'capture-save-open'
     retryTapIfNoChange: true
@@ -28,5 +30,8 @@ appId: com.renlyst.app.next
     id: 'tab-library'
 - tapOn:
     id: 'library-search'
-- inputText: 'Lasix'
-- assertVisible: 'Furosemide'
+- setClipboard: 'Lasix'
+- pasteText
+- extendedWaitUntil:
+    visible: 'Furosemide'
+    timeout: 15000

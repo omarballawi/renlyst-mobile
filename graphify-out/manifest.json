@@ -55,8 +55,8 @@
     "semantic_hash": "1bedbc5a478d51784b3a3f5f5f85687f"
   },
   "app/capture.tsx": {
-    "mtime": 1784415722.421105,
-    "ast_hash": "8091964ac8ae1a1c250cb52a76391e85",
+    "mtime": 1784418925.8344784,
+    "ast_hash": "766d199535fa70402e44803ea0f0fa66",
     "semantic_hash": ""
   },
   "app/drug/[id].tsx": {
@@ -455,13 +455,13 @@
     "semantic_hash": "e37464d2889497cee88e19b034cada85"
   },
   "src/features/capture/ImageEditorModal.tsx": {
-    "mtime": 1784359856.0487366,
-    "ast_hash": "c2b547b818c4ff565ac3f6a5c67e7dd2",
+    "mtime": 1784419080.610107,
+    "ast_hash": "b39327790f151b3cfb342bae49ddcf25",
     "semantic_hash": ""
   },
   "src/features/capture/captureService.ts": {
-    "mtime": 1784341456.7981508,
-    "ast_hash": "4cd2e7b79b3e716d9713ef0556685554",
+    "mtime": 1784418925.8334024,
+    "ast_hash": "0c63b6d40aea2c439dd2f28e2b6aa2d7",
     "semantic_hash": ""
   },
   "src/features/capture/imagePipeline.ts": {
@@ -870,8 +870,8 @@
     "semantic_hash": ""
   },
   ".maestro/capture-photo-smoke.yaml": {
-    "mtime": 1784415722.432502,
-    "ast_hash": "4986a9cfaf64460da14869a25c1e2c55",
+    "mtime": 1784418925.836614,
+    "ast_hash": "f1c909b3f78d81e11b7aba03d6480ead",
     "semantic_hash": ""
   },
   ".maestro/partials/pick-first-image.yaml": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   ".maestro/partials/capture-and-search.yaml": {
-    "mtime": 1784415722.432502,
-    "ast_hash": "bd9942334c61daa3bd0257ffe1fb0057",
+    "mtime": 1784418925.83561,
+    "ast_hash": "9c9646e73c48f9f610e35714c432b044",
     "semantic_hash": ""
   },
   "src/data/database/databaseOptions.ts": {
@@ -907,6 +907,11 @@
   ".maestro/partials/open-renlyst.yaml": {
     "mtime": 1784415722.431282,
     "ast_hash": "dbb4751d1c96236a170e3430d16df4b2",
+    "semantic_hash": ""
+  },
+  "src/features/capture/manipulateImage.ts": {
+    "mtime": 1784419080.6067853,
+    "ast_hash": "2456210d067360ae82061de45a8a5a83",
     "semantic_hash": ""
   }
 }

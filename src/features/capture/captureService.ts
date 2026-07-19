@@ -1,5 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { SaveFormat } from 'expo-image-manipulator';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { Platform } from 'react-native';
 
@@ -8,6 +8,7 @@ import { runExclusiveTransaction } from '@/data/database/transactions';
 import { DrugRepository, ProductRepository } from '@/data/repositories';
 import { sha256Hex } from '@/domain/shared/crypto';
 import { persistenceActions } from '@/features/capture/imagePipeline';
+import { manipulateImage } from '@/features/capture/manipulateImage';
 
 type ImageOwnerType = 'drug' | 'product';
 
@@ -57,7 +58,7 @@ async function persistManipulatedImage(
   sourceHeight: number,
 ): Promise<PreparedCaptureImage> {
   const actions = persistenceActions(sourceWidth, sourceHeight, role);
-  const resized = await manipulateAsync(sourceUri, actions, {
+  const resized = await manipulateImage(sourceUri, actions, {
     compress: role === 'thumbnail' ? 0.72 : 0.82,
     format: SaveFormat.JPEG,
   });

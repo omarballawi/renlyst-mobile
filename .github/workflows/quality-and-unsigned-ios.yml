@@ -97,7 +97,9 @@ jobs:
           open -a Simulator --args -CurrentDeviceUDID "$simulator_udid"
           xcrun simctl bootstatus "$simulator_udid" -b
           xcrun simctl install "$simulator_udid" "$simulator_app"
-          xcrun simctl addmedia "$simulator_udid" "$GITHUB_WORKSPACE/assets/icon.png"
+          xcrun simctl addmedia \
+            "$simulator_udid" \
+            "$GITHUB_WORKSPACE/assets/brand/renlyst-favicon-v2.png"
       - name: Install pinned Maestro CLI
         shell: bash
         env:
